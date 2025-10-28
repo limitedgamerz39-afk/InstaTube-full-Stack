@@ -23,7 +23,7 @@ import groupRoutes from './routes/groupRoutes.js';
 // Load environment variables
 dotenv.config();
 
-// ✅ Environment Variable Validation
+// ✅ Validate environment variables
 const criticalEnvVars = ['MONGO_URI', 'JWT_SECRET'];
 const optionalEnvVars = [
   'CLOUDINARY_CLOUD_NAME',
@@ -31,45 +31,20 @@ const optionalEnvVars = [
   'CLOUDINARY_API_SECRET',
 ];
 
-console.log('\n🔍 Environment Variables Check:');
 const missingCritical = [];
-const missingOptional = [];
-
 criticalEnvVars.forEach((varName) => {
-  if (process.env[varName]) {
-    console.log(`${varName}: ✅ Loaded`);
-  } else {
-    console.log(`${varName}: ❌ Missing (CRITICAL)`);
-    missingCritical.push(varName);
-  }
-});
-
-optionalEnvVars.forEach((varName) => {
-  if (process.env[varName]) {
-    console.log(`${varName}: ✅ Loaded`);
-  } else {
-    console.log(`${varName}: ⚠️  Missing (Optional - uploads disabled)`);
-    missingOptional.push(varName);
-  }
+  if (!process.env[varName]) missingCritical.push(varName);
 });
 
 if (missingCritical.length > 0) {
-  console.error(`\n❌ Missing CRITICAL environment variables: ${missingCritical.join(', ')}`);
-  console.error('Please create a .env file with all required variables.\n');
+  console.error(`❌ Missing CRITICAL env variables: ${missingCritical.join(', ')}`);
   process.exit(1);
 }
 
-if (missingOptional.length > 0) {
-  console.warn(`\n⚠️  Missing optional variables: ${missingOptional.join(', ')}`);
-  console.warn('Uploads may be disabled. Get free credentials at https://cloudinary.com\n');
-} else {
-  console.log('\n✅ All environment variables are loaded\n');
-}
-
-// ✅ Connect to Database
+// ✅ Connect to DB
 connectDB();
 
-// ✅ Initialize Express App
+// ✅ Initialize Express
 const app = express();
 const server = createServer(app);
 
@@ -77,17 +52,12 @@ const server = createServer(app);
 app.use(helmet());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// ✅ Initialize Socket.io
-const io = initializeSocket(server);
-app.set('io', io); // Make io accessible in controllers
-
-// ✅ Body Parsing
+// ✅ Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ✅ Fixed CORS Configuration (supports Netlify & localhost)
+// ✅ CORS for Netlify & localhost
 const allowedOrigins = [
-  'https://instatube-app.netlify.app',
   'http://localhost:5173',
   'http://localhost:3000',
 ];
@@ -95,11 +65,15 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // allow Postman/mobile
-      if (allowedOrigins.includes(origin) || /\.netlify\.app$/.test(origin)) {
+      if (!origin) return callback(null, true); // Postman or mobile
+      if (
+        allowedOrigins.includes(origin) ||
+        /\.netlify\.app$/.test(origin) || // Allow any Netlify frontend
+        /\.vercel\.app$/.test(origin)   // Optional: allow Vercel frontend
+      ) {
         callback(null, true);
       } else {
-        console.warn(`❌ CORS blocked request from origin: ${origin}`);
+        console.warn(`❌ CORS blocked: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
@@ -109,14 +83,18 @@ app.use(
   })
 );
 
-// ✅ Handle Preflight Requests Globally
+// ✅ Handle preflight requests
 app.options('*', cors());
+
+// ✅ Initialize Socket.io
+const io = initializeSocket(server);
+app.set('io', io);
 
 // ✅ Routes
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: '🚀 InstaTube API is running!',
+    message: '🚀 InstaTube API running!',
     version: '1.0.0',
     endpoints: {
       auth: '/api/auth',
@@ -144,11 +122,11 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/ai', aiRoutes);
 
-// ✅ Error Handling
+// ✅ Error handling
 app.use(notFound);
 app.use(errorHandler);
 
-// ✅ Start Server
+// ✅ Start server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
