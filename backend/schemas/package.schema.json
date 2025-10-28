@@ -1,0 +1,39 @@
+{
+  "$id": "https://instatube.local/schemas/package.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Local Package.json Schema (InstaTube)",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "name": { "type": "string" },
+    "version": { "type": "string" },
+    "description": { "type": "string" },
+    "main": { "type": "string" },
+    "type": { "type": "string" },
+    "scripts": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "keywords": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "author": { "type": "string" },
+    "license": { "type": "string" },
+    "dependencies": {
+      "type": "object",
+      "patternProperties": {
+        ".*": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "devDependencies": {
+      "type": "object",
+      "patternProperties": {
+        ".*": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["name", "version"]
+}
