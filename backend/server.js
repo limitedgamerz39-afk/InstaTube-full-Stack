@@ -23,7 +23,7 @@ import groupRoutes from './routes/groupRoutes.js';
 // Load environment variables
 dotenv.config();
 
-// Validate critical environment variables
+// ✅ Environment Variable Validation
 const criticalEnvVars = ['MONGO_URI', 'JWT_SECRET'];
 const optionalEnvVars = [
   'CLOUDINARY_CLOUD_NAME',
@@ -35,7 +35,6 @@ console.log('\n🔍 Environment Variables Check:');
 const missingCritical = [];
 const missingOptional = [];
 
-// Check critical vars
 criticalEnvVars.forEach((varName) => {
   if (process.env[varName]) {
     console.log(`${varName}: ✅ Loaded`);
@@ -45,7 +44,6 @@ criticalEnvVars.forEach((varName) => {
   }
 });
 
-// Check optional vars
 optionalEnvVars.forEach((varName) => {
   if (process.env[varName]) {
     console.log(`${varName}: ✅ Loaded`);
@@ -55,49 +53,66 @@ optionalEnvVars.forEach((varName) => {
   }
 });
 
-// Exit if critical vars are missing
 if (missingCritical.length > 0) {
   console.error(`\n❌ Missing CRITICAL environment variables: ${missingCritical.join(', ')}`);
   console.error('Please create a .env file with all required variables.\n');
   process.exit(1);
 }
 
-// Warn about optional vars
 if (missingOptional.length > 0) {
   console.warn(`\n⚠️  Missing optional variables: ${missingOptional.join(', ')}`);
-  console.warn('File uploads will be disabled. Get free credentials at https://cloudinary.com\n');
+  console.warn('Uploads may be disabled. Get free credentials at https://cloudinary.com\n');
 } else {
   console.log('\n✅ All environment variables are loaded\n');
 }
 
-// Connect to Database
+// ✅ Connect to Database
 connectDB();
 
-// Initialize Express App
+// ✅ Initialize Express App
 const app = express();
 const server = createServer(app);
 
-// Security & Logging
+// ✅ Security & Logging
 app.use(helmet());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// Initialize Socket.io
+// ✅ Initialize Socket.io
 const io = initializeSocket(server);
 app.set('io', io); // Make io accessible in controllers
 
-// Middleware
+// ✅ Body Parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ✅ Fixed CORS Configuration (supports Netlify & localhost)
+const allowedOrigins = [
+  'https://instatube-app.netlify.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow Postman/mobile
+      if (allowedOrigins.includes(origin) || /\.netlify\.app$/.test(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`❌ CORS blocked request from origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
-app.use('/api/ai', aiRoutes);
+// ✅ Handle Preflight Requests Globally
+app.options('*', cors());
 
-// Routes
+// ✅ Routes
 app.get('/', (req, res) => {
   res.json({
     success: true,
@@ -111,6 +126,9 @@ app.get('/', (req, res) => {
       messages: '/api/messages',
       stories: '/api/stories',
       explore: '/api/explore',
+      admin: '/api/admin',
+      groups: '/api/groups',
+      ai: '/api/ai',
     },
   });
 });
@@ -124,15 +142,16 @@ app.use('/api/stories', storyRoutes);
 app.use('/api/explore', exploreRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/groups', groupRoutes);
+app.use('/api/ai', aiRoutes);
 
-// Error Handlers
+// ✅ Error Handling
 app.use(notFound);
 app.use(errorHandler);
 
-// Start Server
+// ✅ Start Server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+  console.log(`🌐 Allowed Origins: ${allowedOrigins.join(', ')} + *.netlify.app`);
   console.log(`📡 Socket.io initialized`);
 });
