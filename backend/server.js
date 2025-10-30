@@ -131,7 +131,7 @@ app.use(errorHandler);
 
 // ✅ Start server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, 'localhost', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌐 Allowed Origins: ${allowedOrigins.join(', ')} + *.replit.dev + *.netlify.app`);
   console.log(`📡 Socket.io initialized`);

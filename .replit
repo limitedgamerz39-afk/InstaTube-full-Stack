@@ -48,12 +48,16 @@ outputType = "webview"
 [[ports]]
 localPort = 3000
 externalPort = 3000
-exposeLocalhost = true
+
+[[ports]]
+localPort = 5000
+externalPort = 80
 
 [[ports]]
 localPort = 35027
 externalPort = 80
 
-[[ports]]
-localPort = 5000
-externalPort = 80
+[deployment]
+deploymentTarget = "vm"
+run = ["bash", "-c", "cd backend && npm start & cd frontend && npm run dev"]
+build = ["bash", "-c", "cd frontend && npm install && npm run build && cd ../backend && npm install"]
