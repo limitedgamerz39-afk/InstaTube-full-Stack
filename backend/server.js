@@ -56,10 +56,11 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ✅ CORS for Netlify & localhost
+// ✅ CORS for Replit, Netlify & localhost
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
+  'http://localhost:5000',
 ];
 
 app.use(
@@ -68,8 +69,10 @@ app.use(
       if (!origin) return callback(null, true); // Postman or mobile
       if (
         allowedOrigins.includes(origin) ||
-        /\.netlify\.app$/.test(origin) || // Allow any Netlify frontend
-        /\.vercel\.app$/.test(origin)   // Optional: allow Vercel frontend
+        /\.replit\.dev$/.test(origin) ||    // Allow Replit domains
+        /\.repl\.co$/.test(origin) ||       // Allow Repl.co domains
+        /\.netlify\.app$/.test(origin) ||   // Allow any Netlify frontend
+        /\.vercel\.app$/.test(origin)       // Optional: allow Vercel frontend
       ) {
         callback(null, true);
       } else {
@@ -127,9 +130,9 @@ app.use(notFound);
 app.use(errorHandler);
 
 // ✅ Start server
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, 'localhost', () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌐 Allowed Origins: ${allowedOrigins.join(', ')} + *.netlify.app`);
+  console.log(`🌐 Allowed Origins: ${allowedOrigins.join(', ')} + *.replit.dev + *.netlify.app`);
   console.log(`📡 Socket.io initialized`);
 });
