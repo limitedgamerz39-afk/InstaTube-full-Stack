@@ -32,6 +32,40 @@ InstaTube is a full-stack MERN (MongoDB, Express, React, Node.js) social media p
 ## Recent Changes
 
 **Date:** November 1, 2025
+### Long-Form Video Support Added
+1. **Videos Page (YouTube-like Experience)**
+   - Dedicated `/videos` route for long-form content
+   - Grid view of all long videos with thumbnails and duration badges
+   - Full video player with controls
+   - Comments section with real-time updates
+   - Related videos sidebar
+   - Video metadata display (views, likes, upload date)
+   - Subscribe button for channel support
+
+2. **Feed Integration**
+   - "Long Videos" shelf added to home feed
+   - Horizontal scrolling video thumbnails (200px wide)
+   - Duration badges showing HH:MM:SS format for videos >1 hour
+   - View count and upload date display
+   - Click-through to dedicated watch page
+
+3. **Navigation Updates**
+   - Videos tab added to bottom navigation (mobile)
+   - Purple theme color for Videos icon
+   - Active state indicators
+
+4. **Monetization Ready**
+   - Pre-roll ads enabled (shown before video playback)
+   - Mid-roll ads functional for videos >5 minutes
+   - Ad interval: Every 5 minutes (configurable in `adConfig.js`)
+   - Seamless ad integration with video playback
+
+5. **Technical Improvements**
+   - Safe array handling for comments and likes
+   - Proper initialization of video data
+   - Error handling for undefined data structures
+   - Consistent with existing Reels ad system
+
 ### PWA & Monetization Features Added
 1. **Progressive Web App (PWA)**
    - Fully installable on desktop and mobile devices
@@ -81,7 +115,8 @@ InstaTube is a full-stack MERN (MongoDB, Express, React, Node.js) social media p
 - 🔔 Real-time notifications
 - 💬 Direct messaging with Socket.io
 - 📖 24-hour stories
-- 🎬 Reels (short videos)
+- 🎬 Reels (short videos ≤60 seconds)
+- 🎥 Long Videos (YouTube-like videos up to 1 hour) **NEW!**
 - 🌍 Explore page with trending content
 - 💾 Save posts and archive
 - 📊 Analytics dashboard
@@ -98,13 +133,13 @@ InstaTube is a full-stack MERN (MongoDB, Express, React, Node.js) social media p
 - 💰 Google AdSense integration
 - 📺 Feed ads (between posts every 5th post)
 - 🎬 Video ads:
-  - ✅ Pre-roll ads (active on Reels)
-  - ⏳ Mid-roll ads (ready for long-form videos)
+  - ✅ Pre-roll ads (active on Reels & Long Videos)
+  - ✅ Mid-roll ads (active for long videos >5 minutes)
   - Post-roll ads (disabled by default)
 - 📱 Reels ads (every 4th reel)
 - ⚙️ Configurable ad placement and frequency
 
-**Note**: Mid-roll ads are implemented and ready but require long-form video content (>5 min). See `FUTURE_FEATURES.md` for details.
+**Note**: Mid-roll ads are now fully functional with the new long-form video feature!
 
 ### Admin Features
 - Complete admin panel at `/admin`
