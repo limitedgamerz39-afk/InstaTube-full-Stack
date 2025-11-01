@@ -52,14 +52,22 @@ feedAds: {
 ### 2. Video Ads (Reels/Stories में)
 
 **Ad Types:**
-- **Pre-roll**: Video start होने से पहले (5 seconds)
-- **Mid-roll**: Long videos के बीच में
-- **Post-roll**: Video खत्म होने के बाद
+- **Pre-roll**: Video start होने से पहले (5 seconds) - **Reels के लिए recommended**
+- **Mid-roll**: Long videos (>5 minutes) के बीच में - **Shorts में नहीं**
+- **Post-roll**: Video खत्म होने के बाद - **Optional**
+
+**Important Note:**
+- Reels/Shorts (≤60 seconds) में सिर्फ **pre-roll ads** show होंगे
+- Mid-roll ads सिर्फ long-form videos (>5 minutes) के लिए हैं
+  - ⚠️ **Current Status**: Reels page केवल shorts (≤60s) show करता है, इसलिए mid-roll ads currently inactive हैं
+  - 💡 **Future**: अगर आप long-form video page add करें (जैसे YouTube regular videos या IGTV), तो mid-roll ads automatically काम करने लगेंगे
+- Post-roll ads looping content के साथ intrusive हो सकते हैं (इसलिए disabled by default)
 
 **Features:**
 - 3 seconds के बाद "Skip Ad" button दिखता है
 - Automatic countdown timer
 - User-friendly interface
+- Smart detection: Mid-roll केवल eligible videos पर ही trigger होगा
 
 **Configuration:**
 ```javascript
@@ -69,6 +77,17 @@ videoAds: {
     duration: 5,      // Ad की length (seconds)
     skipAfter: 3,     // Skip button कब दिखे
   },
+  midRoll: {
+    enabled: true,
+    interval: 300,    // 5 minutes के बाद (केवल long videos के लिए)
+    duration: 5,
+    skipAfter: 3,
+  },
+  postRoll: {
+    enabled: false,   // Shorts के लिए disabled रखें
+    duration: 5,
+    skipAfter: 2,
+  }
 }
 ```
 

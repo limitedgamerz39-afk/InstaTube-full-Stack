@@ -28,6 +28,8 @@ const Reels = () => {
   const [detailsFor, setDetailsFor] = useState(null);
   const [showAd, setShowAd] = useState(false);
   const [adType, setAdType] = useState('pre-roll');
+  const [midRollShown, setMidRollShown] = useState({});
+  const [postRollShown, setPostRollShown] = useState({});
 
   useEffect(() => {
     fetchReels();
@@ -42,6 +44,10 @@ const Reels = () => {
         if (video) {
           if (index === currentIndex) {
             video.play();
+            if (AD_CONFIG.videoAds.midRoll.enabled) {
+              video.ontimeupdate = () => handleVideoProgress(video, index);
+            }
+            video.onended = () => handleVideoEnded(index);
           } else {
             video.pause();
           }
@@ -50,10 +56,36 @@ const Reels = () => {
     }
   }, [currentIndex]);
 
+  const handleVideoProgress = (video, index) => {
+    const currentTime = video.currentTime;
+    const interval = AD_CONFIG.videoAds.midRoll.interval;
+    
+    if (currentTime >= interval && !midRollShown[index] && video.duration > interval + 10) {
+      video.pause();
+      setMidRollShown(prev => ({ ...prev, [index]: true }));
+      setAdType('mid-roll');
+      setShowAd(true);
+    }
+  };
+
+  const handleVideoEnded = (index) => {
+    if (AD_CONFIG.videoAds.postRoll.enabled && !postRollShown[index]) {
+      setPostRollShown(prev => ({ ...prev, [index]: true }));
+      setAdType('post-roll');
+      setShowAd(true);
+    }
+  };
+
   const handleAdComplete = () => {
     setShowAd(false);
     const video = videoRefs.current[currentIndex];
-    if (video) video.play();
+    if (video) {
+      if (AD_CONFIG.videoAds.midRoll.enabled && video.duration > AD_CONFIG.videoAds.midRoll.interval) {
+        video.ontimeupdate = () => handleVideoProgress(video, currentIndex);
+      }
+      video.onended = () => handleVideoEnded(currentIndex);
+      video.play();
+    }
   };
 
   const fetchReels = async () => {
@@ -187,7 +219,11 @@ const Reels = () => {
       {showAd && (
         <VideoAd
           type={adType}
-          duration={AD_CONFIG.videoAds.preRoll.duration}
+          duration={
+            adType === 'pre-roll' ? AD_CONFIG.videoAds.preRoll.duration :
+            adType === 'mid-roll' ? AD_CONFIG.videoAds.midRoll.duration :
+            AD_CONFIG.videoAds.postRoll.duration
+          }
           onComplete={handleAdComplete}
           onSkip={handleAdComplete}
         />

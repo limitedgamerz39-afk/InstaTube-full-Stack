@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 const AdSense = ({ 
-  adClient = 'ca-pub-XXXXXXXXXX', // Replace with your AdSense client ID
+  adClient,
   adSlot,
   adFormat = 'auto',
   fullWidthResponsive = true,

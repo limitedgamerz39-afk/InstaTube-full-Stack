@@ -29,13 +29,35 @@ InstaTube is a full-stack MERN (MongoDB, Express, React, Node.js) social media p
    - Command: `cd frontend && npm run dev`
    - Public-facing web application
 
-## Recent Changes (Replit Setup)
-**Date:** October 30, 2025
+## Recent Changes
 
+**Date:** November 1, 2025
+### PWA & Monetization Features Added
+1. **Progressive Web App (PWA)**
+   - Fully installable on desktop and mobile devices
+   - Offline support with service workers
+   - Native app-like experience
+   - All required PWA icons added (192x192, 512x512, maskable icons)
+   - Configured via vite-plugin-pwa
+
+2. **Monetization System**
+   - Google AdSense integration ready
+   - Feed ads (display between posts every 5th post)
+   - Video ads for Reels (pre-roll, mid-roll, post-roll)
+   - Reels ads (every 4th reel)
+   - Configurable ad frequency and placement
+   - Development mode with ad placeholders
+
+3. **Vite HMR Fix**
+   - Fixed WebSocket connection errors
+   - Simplified HMR configuration for Replit compatibility
+   - Hot Module Replacement now works properly
+
+**Date:** October 30, 2025
 ### Configuration Updates
 1. **Vite Configuration (frontend/vite.config.js)**
    - Configured to bind to `0.0.0.0:5000` for Replit proxy compatibility
-   - Added HMR over WSS for live reload in Replit environment
+   - HMR configured for Replit environment
    - Proxies `/api` and `/socket.io` to backend at `localhost:3000`
 
 2. **Backend CORS (backend/server.js)**
@@ -64,6 +86,25 @@ InstaTube is a full-stack MERN (MongoDB, Express, React, Node.js) social media p
 - 💾 Save posts and archive
 - 📊 Analytics dashboard
 - 👥 Groups and group messaging
+
+### PWA Features (NEW!)
+- 📱 Installable on desktop (Windows, Mac, Linux)
+- 📲 Installable on mobile (Android, iOS)
+- ⚡ Offline support
+- 🔔 Push notifications ready
+- 🚀 Native app experience
+
+### Monetization Features (NEW!)
+- 💰 Google AdSense integration
+- 📺 Feed ads (between posts every 5th post)
+- 🎬 Video ads:
+  - ✅ Pre-roll ads (active on Reels)
+  - ⏳ Mid-roll ads (ready for long-form videos)
+  - Post-roll ads (disabled by default)
+- 📱 Reels ads (every 4th reel)
+- ⚙️ Configurable ad placement and frequency
+
+**Note**: Mid-roll ads are implemented and ready but require long-form video content (>5 min). See `FUTURE_FEATURES.md` for details.
 
 ### Admin Features
 - Complete admin panel at `/admin`
@@ -157,3 +198,19 @@ Real-time events configured in `backend/socket/socket.js`:
 - `ADMIN_PANEL_GUIDE.md` - Complete admin documentation
 - `CLOUDINARY_SETUP.md` - Cloudinary configuration
 - `GROUP_MESSAGING_GUIDE.md` - Group chat features
+- `MONETIZATION_SETUP.md` - **NEW!** Complete guide for PWA installation & monetization
+
+## Monetization Setup
+
+To enable ads and start earning:
+1. Read `MONETIZATION_SETUP.md` for complete setup guide
+2. Create Google AdSense account
+3. Update `frontend/src/utils/adConfig.js` with your AdSense IDs
+4. Deploy to production
+5. Wait for AdSense approval
+
+### PWA Installation
+Users can install InstaTube as a native app:
+- **Desktop**: Click install icon in browser address bar
+- **Android**: Menu → Add to Home Screen
+- **iOS**: Share → Add to Home Screen

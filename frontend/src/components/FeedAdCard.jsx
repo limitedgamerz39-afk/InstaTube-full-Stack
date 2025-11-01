@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AiOutlineClose } from 'react-icons/ai';
 import AdSense from './AdSense';
+import { AD_CONFIG } from '../utils/adConfig';
 
 const FeedAdCard = ({ adSlot }) => {
   const [isVisible, setIsVisible] = useState(true);
@@ -24,6 +25,7 @@ const FeedAdCard = ({ adSlot }) => {
       
       <div className="p-4">
         <AdSense 
+          adClient={AD_CONFIG.adsense.client}
           adSlot={adSlot}
           adFormat="fluid"
           style={{ minHeight: '250px' }}
