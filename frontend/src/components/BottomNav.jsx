@@ -136,6 +136,26 @@ const BottomNav = () => {
           )}
         </Link>
 
+        {/* Videos */}
+        <Link
+          to="/videos"
+          className="flex flex-col items-center justify-center flex-1 h-full transition-colors relative"
+        >
+          <svg
+            className={`w-7 h-7 ${
+              isActive('/videos') ? 'text-purple-500' : 'text-gray-600 dark:text-gray-400'
+            }`}
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm2 0v8h12V6H4z" />
+            <path d="M8 7l5 3-5 3V7z" />
+          </svg>
+          {isActive('/videos') && (
+            <div className="absolute -bottom-1 w-1 h-1 bg-purple-500 rounded-full"></div>
+          )}
+        </Link>
+
 
 
         {/* Upload - Center with Special Style */}

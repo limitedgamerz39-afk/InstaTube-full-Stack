@@ -27,6 +27,7 @@ const Saved = lazy(() => import('./pages/Saved'));
 const Archive = lazy(() => import('./pages/Archive'));
 const Explore = lazy(() => import('./pages/Explore'));
 const Reels = lazy(() => import('./pages/Reels'));
+const Videos = lazy(() => import('./pages/Videos'));
 const VideoCall = lazy(() => import('./pages/VideoCall'));
 const AudioCall = lazy(() => import('./pages/AudioCall'));
 const Analytics = lazy(() => import('./pages/Analytics'));
@@ -292,6 +293,17 @@ function App() {
             element={
               <ProtectedRoute>
                 <Reels />
+                <BottomNav />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/videos"
+            element={
+              <ProtectedRoute>
+                <Navbar />
+                <Videos />
                 <BottomNav />
               </ProtectedRoute>
             }

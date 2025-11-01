@@ -115,6 +115,38 @@ const Feed = () => {
           </div>
         </div>
 
+        {/* Long Videos Shelf */}
+        <div className="lg:col-span-2 mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold">Long Videos</h3>
+            <Link to="/videos" className="text-primary text-sm">View all</Link>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {posts.filter(p => p.category==='long').slice(0,8).map((p) => (
+              <div key={p._id} className="relative min-w-[200px] cursor-pointer group" onClick={() => window.location.href=`/videos?watch=${p._id}`}>
+                <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden mb-2">
+                  <video src={p.media?.[0]?.url || p.mediaUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform" muted playsInline />
+                  <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+                    {typeof p.durationSec==='number' ? (
+                      p.durationSec >= 3600 ? 
+                        `${Math.floor(p.durationSec/3600)}:${String(Math.floor((p.durationSec%3600)/60)).padStart(2,'0')}:${String(p.durationSec%60).padStart(2,'0')}` :
+                        `${Math.floor(p.durationSec/60)}:${String(p.durationSec%60).padStart(2,'0')}`
+                    ) : 'Long'}
+                  </div>
+                </div>
+                <h4 className="font-semibold text-sm line-clamp-2 dark:text-white mb-1">{p.title || 'Untitled Video'}</h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{p.author.username}</p>
+                <p className="text-xs text-gray-500">
+                  {p.views || 0} views • {new Date(p.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+            {posts.filter(p => p.category==='long').length === 0 && (
+              <div className="text-sm text-gray-500">No long videos from people you follow.</div>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Feed Section */}
           <div className="lg:col-span-2">
