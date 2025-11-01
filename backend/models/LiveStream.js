@@ -90,6 +90,46 @@ const liveStreamSchema = new mongoose.Schema(
         type: String,
       },
     },
+    // Super Chat / Monetization
+    superChats: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        amount: {
+          type: Number,
+          required: true,
+        },
+        message: {
+          type: String,
+          maxlength: 200,
+        },
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
+        highlighted: {
+          type: Boolean,
+          default: true,
+        },
+      },
+    ],
+    totalEarnings: {
+      type: Number,
+      default: 0,
+    },
+    category: {
+      type: String,
+      enum: ['gaming', 'music', 'sports', 'education', 'entertainment', 'news', 'tech', 'other'],
+      default: 'other',
+    },
+    visibility: {
+      type: String,
+      enum: ['public', 'unlisted', 'private'],
+      default: 'public',
+    },
+    tags: [String],
   },
   {
     timestamps: true,

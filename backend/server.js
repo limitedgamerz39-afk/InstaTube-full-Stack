@@ -19,6 +19,9 @@ import exploreRoutes from './routes/exploreRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import groupRoutes from './routes/groupRoutes.js';
+import subscriptionRoutes from './routes/subscriptionRoutes.js';
+import creatorRoutes from './routes/creatorRoutes.js';
+import superChatRoutes from './routes/superChatRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -110,6 +113,9 @@ app.get('/', (req, res) => {
       admin: '/api/admin',
       groups: '/api/groups',
       ai: '/api/ai',
+      subscription: '/api/subscription',
+      creator: '/api/creator',
+      superchat: '/api/superchat',
     },
   });
 });
@@ -124,6 +130,9 @@ app.use('/api/explore', exploreRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/subscription', subscriptionRoutes);
+app.use('/api/creator', creatorRoutes);
+app.use('/api/superchat', superChatRoutes);
 
 // ✅ Error handling
 app.use(notFound);

@@ -28,6 +28,8 @@ const Archive = lazy(() => import('./pages/Archive'));
 const Explore = lazy(() => import('./pages/Explore'));
 const Reels = lazy(() => import('./pages/Reels'));
 const Videos = lazy(() => import('./pages/Videos'));
+const Premium = lazy(() => import('./pages/Premium'));
+const CreatorDashboard = lazy(() => import('./pages/CreatorDashboard'));
 const VideoCall = lazy(() => import('./pages/VideoCall'));
 const AudioCall = lazy(() => import('./pages/AudioCall'));
 const Analytics = lazy(() => import('./pages/Analytics'));
@@ -304,6 +306,28 @@ function App() {
               <ProtectedRoute>
                 <Navbar />
                 <Videos />
+                <BottomNav />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/premium"
+            element={
+              <ProtectedRoute>
+                <Navbar />
+                <Premium />
+                <BottomNav />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/creator"
+            element={
+              <ProtectedRoute>
+                <Navbar />
+                <CreatorDashboard />
                 <BottomNav />
               </ProtectedRoute>
             }

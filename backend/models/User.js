@@ -101,6 +101,59 @@ const userSchema = new mongoose.Schema(
         ref: 'Post',
       },
     ],
+    // Premium Subscription
+    isPremium: {
+      type: Boolean,
+      default: false,
+    },
+    premiumSince: {
+      type: Date,
+    },
+    premiumExpiresAt: {
+      type: Date,
+    },
+    premiumPlan: {
+      type: String,
+      enum: ['monthly', 'yearly', 'none'],
+      default: 'none',
+    },
+    // Creator Monetization
+    isMonetizationEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    monetizationApproved: {
+      type: Boolean,
+      default: false,
+    },
+    totalEarnings: {
+      type: Number,
+      default: 0,
+    },
+    pendingPayout: {
+      type: Number,
+      default: 0,
+    },
+    totalWatchTime: {
+      type: Number,
+      default: 0, // in minutes
+    },
+    subscribersCount: {
+      type: Number,
+      default: 0,
+    },
+    // Shorts Fund
+    shortsEarnings: {
+      type: Number,
+      default: 0,
+    },
+    lastShortsFundPayout: {
+      type: Date,
+    },
+    totalShortViews: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
