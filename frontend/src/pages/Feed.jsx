@@ -6,6 +6,8 @@ import StoriesBar from '../components/StoriesBar';
 import PullToRefresh from '../components/PullToRefresh';
 import { PostSkeleton } from '../components/SkeletonLoader';
 import Loader from '../components/Loader';
+import FeedAdCard from '../components/FeedAdCard';
+import { shouldShowFeedAd, AD_CONFIG } from '../utils/adConfig';
 import toast from 'react-hot-toast';
 
 const Feed = () => {
@@ -147,8 +149,13 @@ const Feed = () => {
                 if (filter==='shorts') return cat==='short';
                 if (filter==='long') return cat==='long';
                 return true;
-              }).map((post) => (
-                <PostCard key={post._id} post={post} onDelete={handlePostDelete} />
+              }).map((post, index) => (
+                <>
+                  <PostCard key={post._id} post={post} onDelete={handlePostDelete} />
+                  {shouldShowFeedAd(index) && (
+                    <FeedAdCard key={`ad-${index}`} adSlot={AD_CONFIG.adsense.slots.feedAd} />
+                  )}
+                </>
               ))}
 
               {hasMore && (

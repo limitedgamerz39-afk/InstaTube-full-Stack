@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { postAPI, exploreAPI, userAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import VideoAd from '../components/VideoAd';
+import { shouldShowReelAd, AD_CONFIG } from '../utils/adConfig';
 import toast from 'react-hot-toast';
 import {
   AiOutlineHeart,
@@ -24,23 +26,35 @@ const Reels = () => {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [following, setFollowing] = useState({});
   const [detailsFor, setDetailsFor] = useState(null);
+  const [showAd, setShowAd] = useState(false);
+  const [adType, setAdType] = useState('pre-roll');
 
   useEffect(() => {
     fetchReels();
   }, []);
 
   useEffect(() => {
-    // Auto-play current video
-    videoRefs.current.forEach((video, index) => {
-      if (video) {
-        if (index === currentIndex) {
-          video.play();
-        } else {
-          video.pause();
+    if (shouldShowReelAd(currentIndex)) {
+      setShowAd(true);
+      setAdType('pre-roll');
+    } else {
+      videoRefs.current.forEach((video, index) => {
+        if (video) {
+          if (index === currentIndex) {
+            video.play();
+          } else {
+            video.pause();
+          }
         }
-      }
-    });
+      });
+    }
   }, [currentIndex]);
+
+  const handleAdComplete = () => {
+    setShowAd(false);
+    const video = videoRefs.current[currentIndex];
+    if (video) video.play();
+  };
 
   const fetchReels = async () => {
     try {
@@ -169,11 +183,20 @@ const Reels = () => {
   }
 
   return (
-    <div
-      className="h-screen overflow-y-scroll snap-y snap-mandatory bg-black"
-      onScroll={handleScroll}
-    >
-      {reels.map((reel, index) => (
+    <>
+      {showAd && (
+        <VideoAd
+          type={adType}
+          duration={AD_CONFIG.videoAds.preRoll.duration}
+          onComplete={handleAdComplete}
+          onSkip={handleAdComplete}
+        />
+      )}
+      <div
+        className="h-screen overflow-y-scroll snap-y snap-mandatory bg-black"
+        onScroll={handleScroll}
+      >
+        {reels.map((reel, index) => (
         <div
           key={reel._id}
           className="h-screen w-full snap-start relative flex items-center justify-center"
@@ -403,6 +426,7 @@ const Reels = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 

@@ -1,0 +1,41 @@
+. In-Video Ads (Pre-Roll, Mid-Roll, Post-Roll)
+
+YouTube aur Instagram jaise platforms pe aapko video content ke andar ads dikhayi jati hain. Agar aap long-form videos stream kar rahe hain, to aap pre-roll (video start hone se pehle), mid-roll (video ke beech me), aur post-roll (video ke end me) ads dikhane ka system implement kar sakte hain.
+
+Implementation Steps:
+
+Google AdSense Video Ads: Agar aapke paas video content hai, to aap Google AdSense video ads use kar sakte hain. Aapko Google Ad Manager (previously DoubleClick for Publishers) ka use karna hoga taake aap video content ke beech ads insert kar sakein.
+
+Video Player Integration: Aapko apne video player me ad integration ko enable karna hoga. Agar aap HTML5 video player use kar rahe hain, to aap VAST (Video Ad Serving Template) ad standard implement kar sakte hain, jo ad providers ke saath compatibility ensure karta hai.
+
+Mid-Roll Ad Logic: Aapko apne video player ka code customize karna padega taake long videos ke beech me ads insert ho sakein. Jab user video dekh raha ho, to aap mid-roll ad dikhane ka trigger set kar sakte hain, jaise "5 minutes ke baad ad show karo".
+
+2. Feed Ads (Like Instagram or Facebook)
+
+Instagram aur Facebook ki tarah aap apne feed me posts ke beech me sponsored content ya ads insert kar sakte hain. Yeh typically image-based ya video-based ads hote hain jo organically feed ke andar dikhayi dete hain.
+
+Implementation Steps:
+
+Social Media Feed Ads: Aapko apne posts ya feed section ke liye ad units set up karne honge. Aap Facebook Audience Network ya Google AdMob ka use kar sakte hain, jo aapko feed ads dikhane ka feature provide karte hain.
+
+Native Ads: Yeh ads ek natural part hote hain aapke content ka, isliye unhe feed me seamlessly integrate karna zaroori hai. Aap native ad formats (jo ki images, videos, ya carousels hote hain) use kar sakte hain jo organically posts ke beech me appear hote hain.
+
+Ad Placement Logic: Aap apne feed ko analyze karte hue ad placement ka logic develop kar sakte hain. Example: "Har 5th post ke baad ek ad dikhaye".
+
+Tools for Integration:
+
+Google AdSense: Agar aap ad feeds set karna chahte hain, to Google AdSense bhi aapko feed ads ke liye monetize karne ka option deta hai.
+
+Instagram-like Ads: Agar aap apne web app ko Instagram jaisa feel dena chahte hain, to aap Media.net (a Google AdSense alternative) ka use kar sakte hain, jo rich media ads aur native ads provide karta hai.
+
+3. Shorts Feed Ads (Like YouTube Shorts or Instagram Reels)
+
+YouTube aur Instagram jese platforms pe aapko short-form video content me bhi ads milte hain. Aap apne app me similar short-form video content feed design kar sakte hain, jahan par users ko short videos dekhne ko milte hain aur unke beech me ads show hote hain.
+
+Implementation Steps:
+
+Vertical Video Ads: Short video ads ko integrate karne ke liye, aapko apne app me vertical video player implement karna hoga (jo mobile devices pe better experience deta ho). Aap In-Stream Video Ads ya Interlude Ads insert kar sakte hain, jo short videos ke beech me dikhayi denge.
+
+Ad Rotation & Frequency Capping: Jese YouTube Shorts me ek user ko ek certain amount of ads dikhayi jati hain, waise hi aap ad rotation ko optimize kar sakte hain taake user ko ad fatigue na ho. Frequency capping se aap ad dikhane ki limit set kar sakte hain.
+
+Ad Server Setup: Is tarah ke video ads ke liye aapko ek ad server ki zarurat padegi jo ad placement ko manage kare. Aap Google Ad Manager, Prebid.js (header bidding), ya koi aur programmatic ad server ka use kar sakte hain.
