@@ -45,43 +45,63 @@ const Upload = () => {
   const [recordSeconds, setRecordSeconds] = useState(0);
 
   const handleFileChange = async (e) => {
+    if (!e.target.files || e.target.files.length === 0) {
+      return;
+    }
+
     const selectedFiles = Array.from(e.target.files);
-    if (selectedFiles.length === 0) return;
 
     // Category-based constraints
     const isPrivileged = ['creator', 'business', 'admin'].includes(user?.role);
     if (category === 'long' && !isPrivileged) {
       toast.error('Only creators, business, or admin can upload long videos');
+      e.target.value = '';
       return;
     }
 
     if (category === 'image') {
       if (selectedFiles.length > 10) {
         toast.error('Maximum 10 images allowed');
+        e.target.value = '';
         return;
       }
       for (const file of selectedFiles) {
+        if (!file || !file.type) {
+          toast.error('Invalid file selected');
+          e.target.value = '';
+          return;
+        }
         if (!file.type.startsWith('image/')) {
           toast.error('Only images allowed for Image posts');
+          e.target.value = '';
           return;
         }
         if (file.size > 10 * 1024 * 1024) {
           toast.error('Each image should be less than 10MB');
+          e.target.value = '';
           return;
         }
       }
     } else {
       if (selectedFiles.length !== 1) {
         toast.error('Only one video allowed for Shorts/Long');
+        e.target.value = '';
         return;
       }
       const file = selectedFiles[0];
+      if (!file || !file.type) {
+        toast.error('Invalid file selected');
+        e.target.value = '';
+        return;
+      }
       if (!file.type.startsWith('video/')) {
         toast.error('Only video allowed for Shorts/Long');
+        e.target.value = '';
         return;
       }
       if (file.size > 200 * 1024 * 1024) {
         toast.error('Video should be less than 200MB');
+        e.target.value = '';
         return;
       }
     }
@@ -91,31 +111,61 @@ const Upload = () => {
     // Create previews and validate video duration if needed
     const previewPromises = selectedFiles.map((file) => {
       return new Promise((resolve, reject) => {
+        if (!file) {
+          reject(new Error('Invalid file'));
+          return;
+        }
+
         if (file.type.startsWith('video/')) {
-          const url = URL.createObjectURL(file);
-          const video = document.createElement('video');
-          video.preload = 'metadata';
-          video.src = url;
-          video.onloadedmetadata = () => {
-            const durationSec = Math.round(video.duration || 0);
-            const limit = category === 'short' ? 60 : 3600;
-            if (category !== 'image' && (durationSec === 0 || durationSec > limit)) {
+          try {
+            const url = URL.createObjectURL(file);
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+            
+            const timeoutId = setTimeout(() => {
               URL.revokeObjectURL(url);
-              reject(new Error(category === 'short' ? 'Shorts must be ≤ 60s' : 'Long must be ≤ 1 hour'));
-              return;
-            }
-            resolve({ url, type: file.type, durationSec });
-          };
-          video.onerror = () => {
-            URL.revokeObjectURL(url);
-            reject(new Error('Failed to load video metadata'));
-          };
+              reject(new Error('Video metadata loading timeout'));
+            }, 10000);
+
+            video.onloadedmetadata = () => {
+              clearTimeout(timeoutId);
+              const durationSec = Math.round(video.duration || 0);
+              const limit = category === 'short' ? 60 : 3600;
+              if (category !== 'image' && (durationSec === 0 || durationSec > limit)) {
+                URL.revokeObjectURL(url);
+                reject(new Error(category === 'short' ? 'Shorts must be ≤ 60s' : 'Long must be ≤ 1 hour'));
+                return;
+              }
+              resolve({ url, type: file.type, durationSec });
+            };
+            
+            video.onerror = (error) => {
+              clearTimeout(timeoutId);
+              URL.revokeObjectURL(url);
+              reject(new Error('Failed to load video metadata. Please try another file.'));
+            };
+
+            video.src = url;
+          } catch (error) {
+            reject(new Error('Failed to process video file'));
+          }
         } else {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            resolve({ url: reader.result, type: file.type });
-          };
-          reader.readAsDataURL(file);
+          try {
+            const reader = new FileReader();
+            reader.onerror = () => {
+              reject(new Error('Failed to read image file'));
+            };
+            reader.onloadend = () => {
+              if (reader.result) {
+                resolve({ url: reader.result, type: file.type });
+              } else {
+                reject(new Error('Failed to read image file'));
+              }
+            };
+            reader.readAsDataURL(file);
+          } catch (error) {
+            reject(new Error('Failed to process image file'));
+          }
         }
       });
     });
@@ -124,8 +174,10 @@ const Upload = () => {
       const results = await Promise.all(previewPromises);
       setPreviews(results);
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Failed to load media file');
       setFiles([]);
+      setPreviews([]);
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -554,7 +606,57 @@ const Upload = () => {
                 </div>
                 <div>
                   <label className="text-xs text-gray-500 dark:text-gray-400">Custom thumbnail</label>
-                  <input type="file" accept="image/*" onChange={(e)=>{const f=e.target.files?.[0]; if(!f) return; if(!f.type.startsWith('image/')){toast.error('Only image files allowed'); return;} setThumbnailFile(f); const reader=new FileReader(); reader.onloadend=()=>setThumbnailPreview(reader.result); reader.readAsDataURL(f);}} className="input-field" />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      if (!e.target.files || e.target.files.length === 0) {
+                        return;
+                      }
+                      const f = e.target.files[0];
+                      if (!f || !f.type) {
+                        toast.error('Invalid file selected');
+                        e.target.value = '';
+                        return;
+                      }
+                      if (!f.type.startsWith('image/')) {
+                        toast.error('Only image files allowed');
+                        e.target.value = '';
+                        return;
+                      }
+                      if (f.size > 10 * 1024 * 1024) {
+                        toast.error('Thumbnail should be less than 10MB');
+                        e.target.value = '';
+                        return;
+                      }
+                      setThumbnailFile(f);
+                      try {
+                        const reader = new FileReader();
+                        reader.onerror = () => {
+                          toast.error('Failed to read thumbnail file');
+                          setThumbnailFile(null);
+                          setThumbnailPreview('');
+                          e.target.value = '';
+                        };
+                        reader.onloadend = () => {
+                          if (reader.result) {
+                            setThumbnailPreview(reader.result);
+                          } else {
+                            toast.error('Failed to load thumbnail preview');
+                            setThumbnailFile(null);
+                            setThumbnailPreview('');
+                          }
+                        };
+                        reader.readAsDataURL(f);
+                      } catch (error) {
+                        toast.error('Failed to process thumbnail');
+                        setThumbnailFile(null);
+                        setThumbnailPreview('');
+                        e.target.value = '';
+                      }
+                    }} 
+                    className="input-field" 
+                  />
                 </div>
               </div>
               {thumbnailPreview && (
