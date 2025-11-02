@@ -31,6 +31,73 @@ InstaTube is a full-stack MERN (MongoDB, Express, React, Node.js) social media p
 
 ## Recent Changes
 
+**Date:** November 2, 2025
+
+### YouTube + Instagram Hybrid Features (NEW!)
+InstaTube now has the perfect combination of YouTube and Instagram features, making it the ultimate social media platform!
+
+1. **Playlists System (YouTube-style)**
+   - Create and manage custom video playlists
+   - Add/remove videos from playlists
+   - Public/private playlist visibility
+   - Playlist descriptions and thumbnails
+   - Backend: `Playlist` model with videos array
+   - Frontend: `/playlists` page for management, `/playlists/:userId` for viewing others
+   - Fully integrated with existing video system
+
+2. **Watch Later Queue**
+   - Separate "Watch Later" feature (distinct from Saved posts)
+   - Quick-add videos to watch later
+   - Dedicated Watch Later page at `/watch-later`
+   - Remove videos after watching
+   - Backend: `WatchLater` model with user-video relationships
+   - Frontend: Clean UI for managing watch later queue
+
+3. **Video Chapters & Timestamps**
+   - Add chapter markers to videos with timestamps
+   - Jump to specific points in videos
+   - Chapter titles and descriptions
+   - Timeline UI showing all chapters
+   - Backend: Added `chapters` array to Post model
+   - Format: [{timestamp: "00:00", title: "Introduction"}]
+   - Integrated with video player
+
+4. **Community Tab (YouTube-style)**
+   - Creators can post text updates, polls, and announcements
+   - Separate from regular video posts
+   - Community page at `/community` and `/community/:userId`
+   - Like and comment on community posts
+   - Backend: `CommunityPost` model with type field (text/poll/announcement)
+   - Frontend: Dedicated Community tab for creator engagement
+
+5. **Notes Feature (Instagram-style)**
+   - Quick status updates that expire after 24 hours
+   - Show at the top of feed/profile
+   - Short text-only updates (like Instagram Notes)
+   - Backend: `Note` model with auto-expiration
+   - Great for quick thoughts and updates
+   - Lightweight alternative to full posts
+
+6. **Collab Posts (Instagram-style)**
+   - Joint posts with multiple creators
+   - Tag collaborators who appear as co-authors
+   - Shared engagement and analytics
+   - Backend: Added `collaborators` array to Post model
+   - All collaborators can manage the post
+   - Shows up on all collaborators' profiles
+
+7. **Trending Page**
+   - Discover trending content with smart algorithm
+   - Shows top trending videos based on:
+     - Recent views and engagement
+     - Like/comment ratios
+     - Time decay for freshness
+   - Trending hashtags with post counts
+   - Top trending creators
+   - Backend: `/api/trending` endpoint with custom algorithm
+   - Frontend: `/trending` page with three tabs
+   - Real-time trending content discovery
+
 **Date:** November 1, 2025
 
 ### Advanced Monetization & Creator Features (NEW!)
@@ -163,6 +230,15 @@ InstaTube is a full-stack MERN (MongoDB, Express, React, Node.js) social media p
 - 📊 Analytics dashboard
 - 👥 Groups and group messaging
 
+### YouTube + Instagram Hybrid Features **NEW!**
+- 📑 **Playlists** - Create and manage video collections
+- ⏰ **Watch Later** - Queue videos for later viewing
+- 📺 **Video Chapters** - Timestamp navigation in videos
+- 💬 **Community Tab** - Creator text posts and updates
+- 📝 **Notes** - Quick 24-hour status updates
+- 🤝 **Collab Posts** - Multi-creator joint content
+- 🔥 **Trending Page** - Discover viral content with smart algorithm
+
 ### Monetization & Premium Features **NEW!**
 - 👑 **Premium Subscriptions** (YouTube Premium-style)
   - Monthly and yearly plans with savings
@@ -252,6 +328,7 @@ node scripts/makeUserAdmin.js user@email.com
 Models are in `backend/models/`:
 - User, Post, Comment, Story, Message
 - Notification, Conversation, Group
+- Playlist, WatchLater, CommunityPost, Note (**NEW!**)
 - All using Mongoose ODM
 
 ### Socket.io Events
