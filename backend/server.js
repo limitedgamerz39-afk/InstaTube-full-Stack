@@ -22,6 +22,11 @@ import groupRoutes from './routes/groupRoutes.js';
 import subscriptionRoutes from './routes/subscriptionRoutes.js';
 import creatorRoutes from './routes/creatorRoutes.js';
 import superChatRoutes from './routes/superChatRoutes.js';
+import playlistRoutes from './routes/playlistRoutes.js';
+import watchLaterRoutes from './routes/watchLaterRoutes.js';
+import communityRoutes from './routes/communityRoutes.js';
+import noteRoutes from './routes/noteRoutes.js';
+import trendingRoutes from './routes/trendingRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -116,6 +121,11 @@ app.get('/', (req, res) => {
       subscription: '/api/subscription',
       creator: '/api/creator',
       superchat: '/api/superchat',
+      playlists: '/api/playlists',
+      watchlater: '/api/watchlater',
+      community: '/api/community',
+      notes: '/api/notes',
+      trending: '/api/trending',
     },
   });
 });
@@ -133,6 +143,11 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/creator', creatorRoutes);
 app.use('/api/superchat', superChatRoutes);
+app.use('/api/playlists', playlistRoutes);
+app.use('/api/watchlater', watchLaterRoutes);
+app.use('/api/community', communityRoutes);
+app.use('/api/notes', noteRoutes);
+app.use('/api/trending', trendingRoutes);
 
 // ✅ Error handling
 app.use(notFound);

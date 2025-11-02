@@ -167,6 +167,26 @@ const postSchema = new mongoose.Schema(
     videoStartSec: { type: Number },
     videoEndSec: { type: Number },
     playbackRate: { type: Number },
+    chapters: [
+      {
+        timestamp: {
+          type: Number,
+          required: true,
+        },
+        title: {
+          type: String,
+          required: true,
+          trim: true,
+          maxlength: [100, 'Chapter title cannot exceed 100 characters'],
+        },
+      },
+    ],
+    collaborators: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
   },
   {
     timestamps: true,

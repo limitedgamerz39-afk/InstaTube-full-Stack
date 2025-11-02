@@ -162,4 +162,61 @@ export const groupAPI = {
   leaveGroup: (groupId) => api.delete(`/groups/${groupId}/leave`),
 };
 
+// Playlist APIs
+export const playlistAPI = {
+  createPlaylist: (data) => api.post('/playlists', data),
+  getUserPlaylists: (userId) => api.get(`/playlists/user/${userId}`),
+  getPublicPlaylists: () => api.get('/playlists/public'),
+  getPlaylist: (playlistId) => api.get(`/playlists/${playlistId}`),
+  updatePlaylist: (playlistId, data) => api.put(`/playlists/${playlistId}`, data),
+  deletePlaylist: (playlistId) => api.delete(`/playlists/${playlistId}`),
+  addVideoToPlaylist: (playlistId, postId) => api.post(`/playlists/${playlistId}/videos/${postId}`),
+  removeVideoFromPlaylist: (playlistId, postId) => api.delete(`/playlists/${playlistId}/videos/${postId}`),
+};
+
+// Watch Later APIs
+export const watchLaterAPI = {
+  getWatchLater: () => api.get('/watchlater'),
+  addToWatchLater: (postId) => api.post(`/watchlater/${postId}`),
+  removeFromWatchLater: (postId) => api.delete(`/watchlater/${postId}`),
+  clearWatchLater: () => api.delete('/watchlater'),
+};
+
+// Community APIs
+export const communityAPI = {
+  createCommunityPost: (formData) => {
+    return api.post('/community', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  getUserCommunityPosts: (userId) => api.get(`/community/user/${userId}`),
+  getCommunityPost: (postId) => api.get(`/community/${postId}`),
+  updateCommunityPost: (postId, data) => api.put(`/community/${postId}`, data),
+  deleteCommunityPost: (postId) => api.delete(`/community/${postId}`),
+  likeCommunityPost: (postId) => api.post(`/community/${postId}/like`),
+  addCommunityComment: (postId, text) => api.post(`/community/${postId}/comment`, { text }),
+  votePoll: (postId, optionIndex) => api.post(`/community/${postId}/vote`, { optionIndex }),
+  pinCommunityPost: (postId) => api.post(`/community/${postId}/pin`),
+};
+
+// Note APIs
+export const noteAPI = {
+  createNote: (data) => api.post('/notes', data),
+  getUserNote: (userId) => api.get(`/notes/user/${userId}`),
+  getFollowingNotes: () => api.get('/notes/following'),
+  deleteNote: (noteId) => api.delete(`/notes/${noteId}`),
+  likeNote: (noteId) => api.post(`/notes/${noteId}/like`),
+  replyToNote: (noteId, content) => api.post(`/notes/${noteId}/reply`, { content }),
+};
+
+// Trending APIs
+export const trendingAPI = {
+  getTrendingVideos: (timeframe = '7d', limit = 50) => api.get(`/trending/videos?timeframe=${timeframe}&limit=${limit}`),
+  getTrendingReels: (limit = 50) => api.get(`/trending/reels?limit=${limit}`),
+  getTrendingHashtags: (limit = 20) => api.get(`/trending/hashtags?limit=${limit}`),
+  getTrendingCreators: (limit = 20) => api.get(`/trending/creators?limit=${limit}`),
+};
+
 export default api;

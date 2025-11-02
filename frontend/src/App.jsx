@@ -41,6 +41,10 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
 const AdminPosts = lazy(() => import('./pages/AdminPosts'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
+const Playlists = lazy(() => import('./pages/Playlists'));
+const WatchLater = lazy(() => import('./pages/WatchLater'));
+const Community = lazy(() => import('./pages/Community'));
+const Trending = lazy(() => import('./pages/Trending'));
 
 function App() {
   const [incomingCall, setIncomingCall] = useState(null);
@@ -484,6 +488,61 @@ function App() {
             element={
               <ProtectedRoute>
                 <AdminReports />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* New Features Routes */}
+          <Route
+            path="/playlists"
+            element={
+              <ProtectedRoute>
+                <Playlists />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/playlists/:userId"
+            element={
+              <ProtectedRoute>
+                <Playlists />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/watch-later"
+            element={
+              <ProtectedRoute>
+                <WatchLater />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/community"
+            element={
+              <ProtectedRoute>
+                <Community />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/community/:userId"
+            element={
+              <ProtectedRoute>
+                <Community />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trending"
+            element={
+              <ProtectedRoute>
+                <Trending />
               </ProtectedRoute>
             }
           />
