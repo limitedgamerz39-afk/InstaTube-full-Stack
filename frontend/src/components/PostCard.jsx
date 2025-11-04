@@ -9,9 +9,10 @@ import {
   AiFillHeart,
   AiOutlineComment,
   AiOutlineDelete,
+  AiOutlineShareAlt,
 } from 'react-icons/ai';
-import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
-import { BsThreeDots } from 'react-icons/bs';
+import { BsBookmark, BsBookmarkFill, BsThreeDots, BsArchive } from 'react-icons/bs';
+import { FiSend } from 'react-icons/fi';
 import { timeAgo } from '../utils/timeAgo';
 import CommentBox from './CommentBox';
 import ImageCarousel from './ImageCarousel';
@@ -28,14 +29,12 @@ const PostCard = ({ post: initialPost, onDelete }) => {
   const [isArchived, setIsArchived] = useState(post.isArchived || false);
 
   useEffect(() => {
-    // Listen for real-time likes
     socketService.on('postLiked', (data) => {
       if (data.postId === post._id) {
         setLikesCount(data.likesCount);
       }
     });
 
-    // Listen for real-time comments
     socketService.on('newComment', (data) => {
       if (data.postId === post._id) {
         setPost((prev) => ({
@@ -90,7 +89,6 @@ const PostCard = ({ post: initialPost, onDelete }) => {
       toast.success(response.data.message);
       setShowMenu(false);
       if (response.data.isArchived) {
-        // Optionally remove from feed
         onDelete?.(post._id);
       }
     } catch (error) {
@@ -98,29 +96,53 @@ const PostCard = ({ post: initialPost, onDelete }) => {
     }
   };
 
+  const getCategoryBadge = () => {
+    if (!post.category) return null;
+    
+    const badges = {
+      image: { icon: '📸', label: 'Photo', color: 'from-primary-400 to-primary-600' },
+      short: { icon: '🎬', label: 'Short', color: 'from-secondary-400 to-secondary-600' },
+      long: { icon: '🎥', label: 'Video', color: 'from-accent-400 to-accent-600' },
+    };
+
+    const badge = badges[post.category] || badges.image;
+    const duration = typeof post.durationSec === 'number' 
+      ? `${Math.floor(post.durationSec/60)}:${String(post.durationSec%60).padStart(2,'0')}` 
+      : '';
+
+    return (
+      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r ${badge.color} text-white text-xs font-bold shadow-sm`}>
+        <span>{badge.icon}</span>
+        <span>{badge.label}</span>
+        {duration && <span className="opacity-90">· {duration}</span>}
+      </span>
+    );
+  };
+
   return (
-    <div className="card mb-6 animate-fadeIn">
+    <div className="card mb-6 overflow-hidden animate-fadeIn hover:shadow-card-hover transition-all duration-300">
       {/* Post Header */}
-      <div className="flex items-center justify-between p-4">
+      <div className="flex items-center justify-between p-4 pb-3">
         <Link
           to={`/profile/${post.author.username}`}
-          className="flex items-center space-x-3"
+          className="flex items-center gap-3 group"
         >
-          <img
-            src={post.author.avatar}
-            alt={post.author.username}
-            className="h-10 w-10 rounded-full object-cover"
-          />
-          <div>
-            <p className="font-semibold flex items-center gap-2">
-              {post.author.username}
-              {post.category && (
-                <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-2 py-1 rounded-full">
-                  {post.category === 'image' ? 'Image' : post.category === 'short' ? `Short ${typeof post.durationSec==='number' ? `${Math.floor(post.durationSec/60)}:${String(post.durationSec%60).padStart(2,'0')}` : ''}` : `Long ${typeof post.durationSec==='number' ? `${Math.floor(post.durationSec/60)}:${String(post.durationSec%60).padStart(2,'0')}` : ''}`}
-                </span>
-              )}
-            </p>
-            <p className="text-xs text-gray-500">{timeAgo(post.createdAt)}</p>
+          <div className="relative">
+            <img
+              src={post.author.avatar}
+              alt={post.author.username}
+              className="h-11 w-11 rounded-full object-cover ring-2 ring-gray-200 dark:ring-dark-border group-hover:ring-primary-400 transition-all duration-200"
+            />
+            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-success-500 rounded-full border-2 border-white dark:border-dark-card"></div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <p className="font-bold text-gray-900 dark:text-white truncate group-hover:text-primary-500 transition-colors">
+                {post.author.username}
+              </p>
+              {getCategoryBadge()}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{timeAgo(post.createdAt)}</p>
           </div>
         </Link>
 
@@ -128,27 +150,31 @@ const PostCard = ({ post: initialPost, onDelete }) => {
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="hover:bg-gray-100 p-2 rounded-full"
+              className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-card-hover transition-colors text-gray-600 dark:text-gray-400"
             >
               <BsThreeDots size={20} />
             </button>
 
             {showMenu && (
-              <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 border border-gray-200 dark:border-gray-700 animate-fadeIn z-10">
-                <button
-                  onClick={handleArchive}
-                  className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
-                >
-                  📦 {isArchived ? 'Unarchive' : 'Archive'}
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-500"
-                >
-                  <AiOutlineDelete className="inline mr-2" />
-                  Delete
-                </button>
-              </div>
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}></div>
+                <div className="absolute right-0 mt-2 w-48 card p-2 z-50 animate-scale-in">
+                  <button
+                    onClick={handleArchive}
+                    className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-card-hover text-gray-700 dark:text-gray-300 transition-colors"
+                  >
+                    <BsArchive className="w-4 h-4" />
+                    <span className="font-medium">{isArchived ? 'Unarchive' : 'Archive'}</span>
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl hover:bg-danger-50 dark:hover:bg-danger-900/20 text-danger-500 transition-colors"
+                  >
+                    <AiOutlineDelete className="w-4 h-4" />
+                    <span className="font-medium">Delete</span>
+                  </button>
+                </div>
+              </>
             )}
           </div>
         )}
@@ -168,64 +194,94 @@ const PostCard = ({ post: initialPost, onDelete }) => {
           isLiked={isLiked}
         />
       ) : (
-        <div className="w-full h-64 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-          <p className="text-gray-500 dark:text-gray-400">No media available</p>
+        <div className="w-full h-64 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-dark-card dark:to-dark-card-hover flex items-center justify-center">
+          <div className="text-center">
+            <span className="text-4xl mb-2 block">📷</span>
+            <p className="text-gray-500 dark:text-gray-400 font-medium">No media available</p>
+          </div>
         </div>
       )}
 
       {/* Post Actions */}
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-4">
-            <button onClick={handleLike} className="hover:scale-110 transition dark:text-white">
+      <div className="p-4 pt-3">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={handleLike} 
+              className={`p-2 rounded-xl transition-all duration-200 ${
+                isLiked 
+                  ? 'bg-danger-50 dark:bg-danger-900/20 scale-110' 
+                  : 'hover:bg-gray-100 dark:hover:bg-dark-card-hover hover:scale-110'
+              }`}
+            >
               {isLiked ? (
-                <AiFillHeart size={28} className="text-red-500" />
+                <AiFillHeart size={26} className="text-danger-500 animate-like-burst" />
               ) : (
-                <AiOutlineHeart size={28} />
+                <AiOutlineHeart size={26} className="text-gray-700 dark:text-gray-300" />
               )}
             </button>
 
             <button
               onClick={() => setShowComments(!showComments)}
-              className="hover:scale-110 transition dark:text-white"
+              className={`p-2 rounded-xl transition-all duration-200 ${
+                showComments
+                  ? 'bg-info-50 dark:bg-info-900/20'
+                  : 'hover:bg-gray-100 dark:hover:bg-dark-card-hover'
+              } hover:scale-110`}
             >
-              <AiOutlineComment size={28} />
+              <AiOutlineComment size={26} className={showComments ? 'text-info-500' : 'text-gray-700 dark:text-gray-300'} />
+            </button>
+
+            <button className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-card-hover transition-all duration-200 hover:scale-110">
+              <FiSend size={24} className="text-gray-700 dark:text-gray-300" />
             </button>
           </div>
 
-          <button onClick={handleSave} className="hover:scale-110 transition dark:text-white">
+          <button 
+            onClick={handleSave} 
+            className={`p-2 rounded-xl transition-all duration-200 ${
+              isSaved 
+                ? 'bg-warning-50 dark:bg-warning-900/20 scale-110' 
+                : 'hover:bg-gray-100 dark:hover:bg-dark-card-hover hover:scale-110'
+            }`}
+          >
             {isSaved ? (
-              <BsBookmarkFill size={24} className="text-black dark:text-white" />
+              <BsBookmarkFill size={24} className="text-warning-500" />
             ) : (
-              <BsBookmark size={24} />
+              <BsBookmark size={24} className="text-gray-700 dark:text-gray-300" />
             )}
           </button>
         </div>
 
         {/* Likes Count */}
-        <p className="font-semibold mb-2">
-          {likesCount} {likesCount === 1 ? 'like' : 'likes'}
-        </p>
+        {likesCount > 0 && (
+          <p className="font-bold text-gray-900 dark:text-white mb-3">
+            {likesCount.toLocaleString()} {likesCount === 1 ? 'like' : 'likes'}
+          </p>
+        )}
 
         {/* Caption with Hashtags & Mentions */}
         {post.caption && (
-          <CaptionWithLinks caption={post.caption} author={post.author} />
+          <div className="mb-3">
+            <CaptionWithLinks caption={post.caption} author={post.author} />
+          </div>
         )}
 
         {/* Location */}
         {post.location && (
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-            📍 {post.location}
-          </p>
+          <div className="flex items-center gap-2 mb-3 text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-base">📍</span>
+            <span className="font-medium">{post.location}</span>
+          </div>
         )}
 
         {/* Comments Preview */}
         {post.comments.length > 0 && !showComments && (
           <button
             onClick={() => setShowComments(true)}
-            className="text-gray-500 text-sm mb-2"
+            className="text-gray-500 dark:text-gray-400 text-sm font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors mb-2"
           >
-            View all {post.comments.length} comments
+            View all {post.comments.length} {post.comments.length === 1 ? 'comment' : 'comments'}
           </button>
         )}
 

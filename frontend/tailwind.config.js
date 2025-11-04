@@ -8,35 +8,164 @@ export default {
   theme: {
     extend: {
       colors: {
-        // New Vibrant Color Scheme
-        primary: '#7C3AED', // Purple
-        secondary: '#EC4899', // Pink
-        accent: '#F59E0B', // Amber
-        success: '#10B981', // Green
-        info: '#3B82F6', // Blue
-        warning: '#F97316', // Orange
-        danger: '#EF4444', // Red
+        // 🌅 Sunset Dream Color Scheme - Fresh & Modern
+        primary: {
+          50: '#FFF1F7',
+          100: '#FFE4F0',
+          200: '#FFC9E0',
+          300: '#FF9EC9',
+          400: '#FF6BA3',
+          500: '#FF3D7F',
+          600: '#FF1B5E',
+          700: '#E0004D',
+          800: '#B80040',
+          900: '#940034',
+        },
+        secondary: {
+          50: '#FFF4ED',
+          100: '#FFE7D6',
+          200: '#FFCAA8',
+          300: '#FFA470',
+          400: '#FF7A3D',
+          500: '#FF5716',
+          600: '#F03A00',
+          700: '#C72800',
+          800: '#9E2100',
+          900: '#7F1D05',
+        },
+        accent: {
+          50: '#F7F1FF',
+          100: '#EFE3FF',
+          200: '#DFC7FF',
+          300: '#C89DFF',
+          400: '#B06BFF',
+          500: '#9839FF',
+          600: '#8514FF',
+          700: '#7200ED',
+          800: '#5F00C7',
+          900: '#4D00A1',
+        },
+        info: {
+          50: '#E6FBFF',
+          100: '#CCF7FF',
+          200: '#99EEFF',
+          300: '#66E5FF',
+          400: '#33DCFF',
+          500: '#00D4FF',
+          600: '#00A8CC',
+          700: '#007D99',
+          800: '#005366',
+          900: '#002833',
+        },
+        success: {
+          50: '#E6FFF8',
+          100: '#CCFFF1',
+          200: '#99FFE3',
+          300: '#66FFD5',
+          400: '#33FFC7',
+          500: '#00F5A0',
+          600: '#00C480',
+          700: '#009360',
+          800: '#006240',
+          900: '#003120',
+        },
+        warning: {
+          50: '#FFF8E6',
+          100: '#FFF0CC',
+          200: '#FFE199',
+          300: '#FFD166',
+          400: '#FFC233',
+          500: '#FFB300',
+          600: '#CC8F00',
+          700: '#996B00',
+          800: '#664700',
+          900: '#332400',
+        },
+        danger: {
+          50: '#FFE8E8',
+          100: '#FFD1D1',
+          200: '#FFA3A3',
+          300: '#FF7575',
+          400: '#FF4747',
+          500: '#FF1919',
+          600: '#CC1414',
+          700: '#990F0F',
+          800: '#660A0A',
+          900: '#330505',
+        },
         
-        // Custom Gradients
-        'gradient-start': '#8B5CF6',
-        'gradient-middle': '#EC4899',
-        'gradient-end': '#F59E0B',
-        
-        // Dark mode colors
+        // Modern Dark Mode Colors
         dark: {
-          bg: '#0F172A',
-          card: '#1E293B',
-          border: '#334155',
+          bg: '#0A0E1A',
+          'bg-secondary': '#121825',
+          card: '#1A1F35',
+          'card-hover': '#232A45',
+          border: '#2D3548',
+          'border-light': '#3D4558',
         },
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-primary': 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 50%, #F59E0B 100%)',
-        'gradient-secondary': 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
+        'gradient-primary': 'linear-gradient(135deg, #FF3D7F 0%, #FF5716 50%, #FFB300 100%)',
+        'gradient-secondary': 'linear-gradient(135deg, #9839FF 0%, #00D4FF 100%)',
+        'gradient-sunset': 'linear-gradient(135deg, #FF6B9D 0%, #FF8E53 50%, #C77DFF 100%)',
+        'gradient-ocean': 'linear-gradient(135deg, #00D4FF 0%, #9839FF 100%)',
+        'gradient-success': 'linear-gradient(135deg, #00F5A0 0%, #00D4FF 100%)',
+        'gradient-dark': 'linear-gradient(135deg, #1A1F35 0%, #0A0E1A 100%)',
+        'gradient-mesh': 'linear-gradient(135deg, rgba(255, 61, 127, 0.1) 0%, rgba(152, 57, 255, 0.1) 100%)',
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(139, 92, 246, 0.5)',
-        'glow-pink': '0 0 20px rgba(236, 72, 153, 0.5)',
+        'glow': '0 0 30px rgba(255, 61, 127, 0.4)',
+        'glow-lg': '0 0 50px rgba(255, 61, 127, 0.5)',
+        'glow-primary': '0 0 30px rgba(255, 61, 127, 0.4)',
+        'glow-secondary': '0 0 30px rgba(152, 57, 255, 0.4)',
+        'glow-accent': '0 0 30px rgba(0, 212, 255, 0.4)',
+        'glow-success': '0 0 30px rgba(0, 245, 160, 0.4)',
+        'card': '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
+        'card-hover': '0 12px 48px 0 rgba(255, 61, 127, 0.25)',
+      },
+      backdropBlur: {
+        xs: '2px',
+      },
+      animation: {
+        'float': 'float 6s ease-in-out infinite',
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'glow': 'glow 3s ease-in-out infinite',
+        'shimmer': 'shimmer 2s linear infinite',
+        'slide-up': 'slide-up 0.5s ease-out',
+        'slide-down': 'slide-down 0.5s ease-out',
+        'fade-in': 'fade-in 0.4s ease-out',
+        'scale-in': 'scale-in 0.3s ease-out',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-20px)' },
+        },
+        glow: {
+          '0%, 100%': { boxShadow: '0 0 30px rgba(255, 61, 127, 0.4)' },
+          '50%': { boxShadow: '0 0 50px rgba(152, 57, 255, 0.6)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        'slide-up': {
+          '0%': { transform: 'translateY(20px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        'slide-down': {
+          '0%': { transform: 'translateY(-20px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'scale-in': {
+          '0%': { transform: 'scale(0.9)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
       },
     },
   },
