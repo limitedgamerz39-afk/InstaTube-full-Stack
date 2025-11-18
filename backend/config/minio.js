@@ -132,11 +132,15 @@ export const uploadToStorage = (fileBuffer, folder = 'instatube', originalName =
       
       const publicUrl = `${protocol}://${endpoint}${portSuffix}/${bucketName}/${fileName}`;
       
+      // Return object compatible with controllers
+      // Note: MinIO doesn't provide video/audio duration metadata like Cloudinary
+      // Duration must be extracted separately if needed
       resolve({
         secure_url: publicUrl,
         public_id: fileName,
         etag: etag,
         resource_type: 'auto',
+        duration: undefined, // MinIO doesn't provide this - can be added via ffprobe/metadata extraction
       });
     });
   });

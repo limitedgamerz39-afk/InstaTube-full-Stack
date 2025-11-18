@@ -2,7 +2,7 @@ import CommunityPost from '../models/CommunityPost.js';
 import Comment from '../models/Comment.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { uploadToCloudinary } from '../config/cloudinary.js';
+import { uploadToStorage } from '../config/minio.js';
 
 // @desc    Create community post
 // @route   POST /api/community
@@ -23,7 +23,7 @@ export const createCommunityPost = async (req, res) => {
     };
 
     if (req.file) {
-      const uploadResult = await uploadToCloudinary(req.file.buffer, 'instatube/community');
+      const uploadResult = await uploadToStorage(req.file.buffer, 'instatube/community', req.file.originalname);
       postData.media = {
         url: uploadResult.secure_url,
         type: req.file.mimetype.startsWith('image/') ? 'image' : 'video',

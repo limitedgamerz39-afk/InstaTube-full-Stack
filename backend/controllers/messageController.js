@@ -28,6 +28,8 @@ export const sendVoiceMessage = async (req, res) => {
     // Upload to MinIO (auto resource type handles audio/video containers like webm/ogg)
     const upload = await uploadToStorage(req.file.buffer, 'instatube/messages', req.file.originalname);
 
+    // Note: MinIO doesn't provide audio duration metadata
+    // Setting to 0 as a placeholder - can be extracted client-side if needed
     const durationSec = Math.round(upload?.duration || 0);
 
     const convo = await Conversation.findOrCreate(req.user._id, receiverId);

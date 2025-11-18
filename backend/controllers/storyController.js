@@ -1,6 +1,6 @@
 import Story from '../models/Story.js';
 import User from '../models/User.js';
-import { uploadToCloudinary } from '../config/cloudinary.js';
+import { uploadToStorage } from '../config/minio.js';
 
 // @desc    Create story
 // @route   POST /api/stories
@@ -16,8 +16,8 @@ export const createStory = async (req, res) => {
       });
     }
 
-    console.log('📤 Uploading story to Cloudinary...');
-    const result = await uploadToCloudinary(req.file.buffer, 'instatube/stories');
+    console.log('📤 Uploading story to MinIO...');
+    const result = await uploadToStorage(req.file.buffer, 'instatube/stories', req.file.originalname);
     console.log('✅ Story upload successful');
 
     const mediaType = req.file.mimetype.startsWith('video') ? 'video' : 'image';

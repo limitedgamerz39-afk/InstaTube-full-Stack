@@ -34,9 +34,12 @@ dotenv.config();
 // ✅ Validate environment variables
 const criticalEnvVars = ['MONGO_URI', 'JWT_SECRET'];
 const optionalEnvVars = [
-  'CLOUDINARY_CLOUD_NAME',
-  'CLOUDINARY_API_KEY',
-  'CLOUDINARY_API_SECRET',
+  'MINIO_ENDPOINT',
+  'MINIO_PORT',
+  'MINIO_ACCESS_KEY',
+  'MINIO_SECRET_KEY',
+  'MINIO_BUCKET',
+  'OPENAI_API_KEY',
 ];
 
 const missingCritical = [];

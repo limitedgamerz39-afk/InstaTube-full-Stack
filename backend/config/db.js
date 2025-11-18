@@ -2,16 +2,16 @@ import mongoose from 'mongoose';
 
 const connectDB = async () => {
   try {
-    console.log('🔧 Attempting to connect to MongoDB Atlas...');
-    console.log('📝 Connection string:', process.env.MONGO_URI?.replace(/mongodb\+srv:\/\/([^:]+):([^@]+)@/, 'mongodb+srv://username:password@'));
+    const isLocalMongo = process.env.MONGO_URI?.includes('localhost') || process.env.MONGO_URI?.includes('127.0.0.1');
+    console.log(`🔧 Attempting to connect to ${isLocalMongo ? 'Local MongoDB' : 'MongoDB Atlas'}...`);
+    console.log('📝 Connection string:', process.env.MONGO_URI?.replace(/mongodb(\+srv)?:\/\/([^:]+):([^@]+)@/, 'mongodb$1://username:password@'));
     
     const conn = await mongoose.connect(process.env.MONGO_URI, {
-      // Add these options for better Atlas compatibility
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
 
-    console.log(`✅ MongoDB Atlas Connected: ${conn.connection.host}`);
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     console.log(`📊 Database: ${conn.connection.name}`);
     
     // Verify we can actually query the database

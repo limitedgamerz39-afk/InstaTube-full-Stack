@@ -11,7 +11,7 @@ import {
   pinCommunityPost,
 } from '../controllers/communityController.js';
 import { protect } from '../middleware/authMiddleware.js';
-import { upload } from '../config/cloudinary.js';
+import { upload } from '../config/minio.js';
 
 const router = express.Router();
 

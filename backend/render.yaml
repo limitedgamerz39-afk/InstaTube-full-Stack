@@ -15,9 +15,17 @@ services:
         sync: false  # Set in Render dashboard
       - key: JWT_SECRET
         sync: false  # Set in Render dashboard
-      - key: CLOUDINARY_CLOUD_NAME
+      - key: MINIO_ENDPOINT
+        sync: false  # Set in Render dashboard - MinIO server endpoint
+      - key: MINIO_PORT
+        value: 9000
+      - key: MINIO_USE_SSL
+        value: false
+      - key: MINIO_ACCESS_KEY
         sync: false  # Set in Render dashboard
-      - key: CLOUDINARY_API_KEY
+      - key: MINIO_SECRET_KEY
         sync: false  # Set in Render dashboard
-      - key: CLOUDINARY_API_SECRET
-        sync: false  # Set in Render dashboard
+      - key: MINIO_BUCKET
+        value: instatube
+      - key: OPENAI_API_KEY
+        sync: false  # Optional - for AI features

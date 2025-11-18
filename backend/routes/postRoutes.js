@@ -16,7 +16,7 @@ import {
   unpinComment,
 } from '../controllers/postController.js';
 import { protect } from '../middleware/authMiddleware.js';
-import { upload, uploadMultiple } from '../config/cloudinary.js';
+import { upload, uploadMultiple } from '../config/minio.js';
 import { uploadLimiter } from '../middleware/rateLimitMiddleware.js';
 
 const router = express.Router();

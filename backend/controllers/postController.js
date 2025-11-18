@@ -39,14 +39,15 @@ export const createPost = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Description cannot exceed 5000 characters' });
     }
 
+    // Get media files from request
+    const mediaFiles = (req.files && req.files.media) ? req.files.media : (req.files ? req.files : (req.file ? [req.file] : []));
+
     if (!mediaFiles || mediaFiles.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'Please upload at least one image or video',
       });
     }
-
-    const mediaFiles = (req.files && req.files.media) ? req.files.media : (req.files ? req.files : (req.file ? [req.file] : []));
 
     // Validate files by category
     if (category === 'image') {
@@ -74,20 +75,28 @@ export const createPost = async (req, res) => {
     let durationSec;
     if (category !== 'image') {
       durationSec = Math.round(uploadResults[0]?.duration || 0);
-      const limit = category === 'short' ? 60 : 3600;
-      if (!durationSec || durationSec > limit) {
-        const publicId = uploadResults[0]?.public_id;
-        if (publicId) {
-          try {
-            await deleteFromStorage(publicId);
-          } catch (e) {
-            console.warn('MinIO cleanup failed:', e?.message);
+      
+      // Note: MinIO doesn't provide video duration metadata like Cloudinary does
+      // Duration validation is skipped for self-hosted MinIO setups
+      // If duration is provided (e.g., from client or future metadata extraction), validate it
+      if (durationSec > 0) {
+        const limit = category === 'short' ? 60 : 3600;
+        if (durationSec > limit) {
+          const publicId = uploadResults[0]?.public_id;
+          if (publicId) {
+            try {
+              await deleteFromStorage(publicId);
+            } catch (e) {
+              console.warn('MinIO cleanup failed:', e?.message);
+            }
           }
+          return res.status(400).json({
+            success: false,
+            message: category === 'short' ? 'Shorts must be 60 seconds or less' : 'Long videos must be 1 hour or less',
+          });
         }
-        return res.status(400).json({
-          success: false,
-          message: category === 'short' ? 'Shorts must be 60 seconds or less' : 'Long videos must be 1 hour or less',
-        });
+      } else {
+        console.log('⚠️  Video duration not available - skipping duration validation (MinIO limitation)');
       }
     }
 

@@ -11,11 +11,11 @@ const fixAvatars = async () => {
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     
-    // Update all users with demo/placeholder avatars
+    // Update all users with demo/placeholder avatars or old cloud storage URLs
     const result = await User.updateMany(
       {
         $or: [
-          { avatar: /cloudinary\.com\/demo/ },
+          { avatar: /cloudinary\.com\/demo/ }, // Old Cloudinary demo URLs
           { avatar: /ui-avatars\.com/ },
           { avatar: { $exists: false } },
           { avatar: '' }
