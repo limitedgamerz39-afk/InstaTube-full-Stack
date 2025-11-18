@@ -2,7 +2,7 @@ import Post from '../models/Post.js';
 import User from '../models/User.js';
 import Comment from '../models/Comment.js';
 import Notification from '../models/Notification.js';
-import cloudinary, { uploadToCloudinary } from '../config/cloudinary.js';
+import { uploadToStorage, deleteFromStorage } from '../config/minio.js';
 
 // @desc    Create new post
 // @route   POST /api/posts
@@ -64,11 +64,11 @@ export const createPost = async (req, res) => {
       }
     }
 
-    console.log('📤 Uploading', files.length, 'file(s) to Cloudinary...');
+    console.log('📤 Uploading', mediaFiles.length, 'file(s) to MinIO...');
 
     // Upload all files in parallel
     const uploadResults = await Promise.all(
-      mediaFiles.map((file) => uploadToCloudinary(file.buffer, 'instatube/posts'))
+      mediaFiles.map((file) => uploadToStorage(file.buffer, 'instatube/posts', file.originalname))
     );
 
     let durationSec;
@@ -79,9 +79,9 @@ export const createPost = async (req, res) => {
         const publicId = uploadResults[0]?.public_id;
         if (publicId) {
           try {
-            await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
+            await deleteFromStorage(publicId);
           } catch (e) {
-            console.warn('Cloudinary cleanup failed:', e?.message);
+            console.warn('MinIO cleanup failed:', e?.message);
           }
         }
         return res.status(400).json({
@@ -103,7 +103,7 @@ export const createPost = async (req, res) => {
     try {
       const thumbFile = req.files?.thumbnail?.[0];
       if (thumbFile) {
-        const thumbUpload = await uploadToCloudinary(thumbFile.buffer, 'instatube/thumbnails');
+        const thumbUpload = await uploadToStorage(thumbFile.buffer, 'instatube/thumbnails', thumbFile.originalname);
         thumbnailUrl = thumbUpload.secure_url;
       }
     } catch (e) {

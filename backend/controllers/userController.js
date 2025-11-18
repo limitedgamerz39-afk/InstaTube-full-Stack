@@ -1,7 +1,7 @@
 import User from '../models/User.js';
 import Post from '../models/Post.js';
 import Notification from '../models/Notification.js';
-import { uploadToCloudinary } from '../config/cloudinary.js';
+import { uploadToStorage } from '../config/minio.js';
 
 // @desc    Get user profile by username
 // @route   GET /api/users/:username
@@ -58,10 +58,10 @@ export const updateProfile = async (req, res) => {
     // Handle avatar upload
     if (req.files && req.files.avatar && req.files.avatar[0]) {
       const file = req.files.avatar[0];
-      console.log('📤 Uploading avatar to Cloudinary...');
+      console.log('📤 Uploading avatar to MinIO...');
       console.log('File size:', file.size, 'bytes');
       console.log('File type:', file.mimetype);
-      const result = await uploadToCloudinary(file.buffer, 'instatube/avatars');
+      const result = await uploadToStorage(file.buffer, 'instatube/avatars', file.originalname);
       console.log('✅ Avatar upload successful:', result.secure_url);
       user.avatar = result.secure_url;
     }
@@ -69,10 +69,10 @@ export const updateProfile = async (req, res) => {
     // Handle cover image upload
     if (req.files && req.files.cover && req.files.cover[0]) {
       const file = req.files.cover[0];
-      console.log('📤 Uploading cover image to Cloudinary...');
+      console.log('📤 Uploading cover image to MinIO...');
       console.log('File size:', file.size, 'bytes');
       console.log('File type:', file.mimetype);
-      const result = await uploadToCloudinary(file.buffer, 'instatube/covers');
+      const result = await uploadToStorage(file.buffer, 'instatube/covers', file.originalname);
       console.log('✅ Cover upload successful:', result.secure_url);
       user.coverImage = result.secure_url;
     }
