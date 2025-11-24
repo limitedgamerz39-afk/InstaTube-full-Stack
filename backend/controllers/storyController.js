@@ -7,7 +7,7 @@ import { uploadToStorage } from '../config/minio.js';
 // @access  Private
 export const createStory = async (req, res) => {
   try {
-    const { caption } = req.body;
+    const { caption, effect, location, locationLat, locationLng, productTags } = req.body;
 
     if (!req.file) {
       return res.status(400).json({
@@ -17,16 +17,33 @@ export const createStory = async (req, res) => {
     }
 
     console.log('📤 Uploading story to MinIO...');
-    const result = await uploadToStorage(req.file.buffer, 'instatube/stories', req.file.originalname);
-    console.log('✅ Story upload successful');
+    console.log('File details:', {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size
+    });
+    
+    const result = await uploadToStorage(req.file.buffer, 'friendflix/stories', req.file.originalname);
+    console.log('✅ Story upload successful', result);
 
     const mediaType = req.file.mimetype.startsWith('video') ? 'video' : 'image';
+
+    // Process location data
+    let locationData = {};
+    if (location) {
+      locationData.name = location;
+      if (locationLat) locationData.lat = Number(locationLat);
+      if (locationLng) locationData.lng = Number(locationLng);
+    }
 
     const story = await Story.create({
       author: req.user._id,
       mediaUrl: result.secure_url,
       mediaType,
       caption: caption || '',
+      effect: effect || 'none',
+      location: locationData,
+      productTags: productTags ? JSON.parse(productTags) : [],
     });
 
     const populatedStory = await Story.findById(story._id).populate(
@@ -41,6 +58,7 @@ export const createStory = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Story creation error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: error.message,
@@ -48,16 +66,16 @@ export const createStory = async (req, res) => {
   }
 };
 
-// @desc    Get stories from following users
-// @route   GET /api/stories/following
+// @desc    Get stories from subscribed users
+// @route   GET /api/stories/subscribed
 // @access  Private
-export const getFollowingStories = async (req, res) => {
+export const getsubscribedStories = async (req, res) => {
   try {
     const currentUser = await User.findById(req.user._id);
 
-    // Get stories from followed users + own stories
+    // Get stories from subscribed users + own stories
     const stories = await Story.find({
-      author: { $in: [...currentUser.following, currentUser._id] },
+      author: { $in: [...currentUser.subscribed, currentUser._id] },
       expiresAt: { $gt: new Date() },
     })
       .sort({ createdAt: -1 })

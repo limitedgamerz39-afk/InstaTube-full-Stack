@@ -70,6 +70,8 @@ const messageSchema = new mongoose.Schema(
 messageSchema.index({ sender: 1, receiver: 1, createdAt: -1 });
 messageSchema.index({ receiver: 1, read: 1 });
 messageSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+messageSchema.index({ conversation: 1, createdAt: -1 });
+messageSchema.index({ createdAt: -1 });
 
 const Message = mongoose.model('Message', messageSchema);
 

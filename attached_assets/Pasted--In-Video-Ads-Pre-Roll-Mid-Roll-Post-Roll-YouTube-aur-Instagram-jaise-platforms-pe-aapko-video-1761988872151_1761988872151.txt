@@ -1,6 +1,6 @@
 . In-Video Ads (Pre-Roll, Mid-Roll, Post-Roll)
 
-YouTube aur Instagram jaise platforms pe aapko video content ke andar ads dikhayi jati hain. Agar aap long-form videos stream kar rahe hain, to aap pre-roll (video start hone se pehle), mid-roll (video ke beech me), aur post-roll (video ke end me) ads dikhane ka system implement kar sakte hain.
+friendflix aur Instagram jaise platforms pe aapko video content ke andar ads dikhayi jati hain. Agar aap long-form videos stream kar rahe hain, to aap pre-roll (video start hone se pehle), mid-roll (video ke beech me), aur post-roll (video ke end me) ads dikhane ka system implement kar sakte hain.
 
 Implementation Steps:
 
@@ -28,14 +28,14 @@ Google AdSense: Agar aap ad feeds set karna chahte hain, to Google AdSense bhi a
 
 Instagram-like Ads: Agar aap apne web app ko Instagram jaisa feel dena chahte hain, to aap Media.net (a Google AdSense alternative) ka use kar sakte hain, jo rich media ads aur native ads provide karta hai.
 
-3. Shorts Feed Ads (Like YouTube Shorts or Instagram Reels)
+3. Shorts Feed Ads (Like friendflix Shorts or Instagram Reels)
 
-YouTube aur Instagram jese platforms pe aapko short-form video content me bhi ads milte hain. Aap apne app me similar short-form video content feed design kar sakte hain, jahan par users ko short videos dekhne ko milte hain aur unke beech me ads show hote hain.
+friendflix aur Instagram jese platforms pe aapko short-form video content me bhi ads milte hain. Aap apne app me similar short-form video content feed design kar sakte hain, jahan par users ko short videos dekhne ko milte hain aur unke beech me ads show hote hain.
 
 Implementation Steps:
 
 Vertical Video Ads: Short video ads ko integrate karne ke liye, aapko apne app me vertical video player implement karna hoga (jo mobile devices pe better experience deta ho). Aap In-Stream Video Ads ya Interlude Ads insert kar sakte hain, jo short videos ke beech me dikhayi denge.
 
-Ad Rotation & Frequency Capping: Jese YouTube Shorts me ek user ko ek certain amount of ads dikhayi jati hain, waise hi aap ad rotation ko optimize kar sakte hain taake user ko ad fatigue na ho. Frequency capping se aap ad dikhane ki limit set kar sakte hain.
+Ad Rotation & Frequency Capping: Jese friendflix Shorts me ek user ko ek certain amount of ads dikhayi jati hain, waise hi aap ad rotation ko optimize kar sakte hain taake user ko ad fatigue na ho. Frequency capping se aap ad dikhane ki limit set kar sakte hain.
 
 Ad Server Setup: Is tarah ke video ads ke liye aapko ek ad server ki zarurat padegi jo ad placement ko manage kare. Aap Google Ad Manager, Prebid.js (header bidding), ya koi aur programmatic ad server ka use kar sakte hain.

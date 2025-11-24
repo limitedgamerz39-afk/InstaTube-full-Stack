@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import socketService from '../services/socket';
+import { liveStreamAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import {
   AiOutlineHeart,
@@ -23,6 +24,8 @@ const LiveStream = () => {
   const [viewerCount, setViewerCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   const videoRef = useRef(null);
   const commentsEndRef = useRef(null);
@@ -47,22 +50,19 @@ const LiveStream = () => {
   }, [streamId]);
 
   const fetchStreamData = async () => {
-    // Simulated stream data
-    setStream({
-      id: streamId,
-      host: {
-        id: '123',
-        username: 'creator_username',
-        avatar: 'https://ui-avatars.com/api/?name=Creator',
-        isVerified: true,
-      },
-      title: 'Amazing Live Stream! 🔥',
-      viewerCount: 1234,
-      likes: 567,
-      isLive: true,
-      startedAt: new Date(),
-    });
-    setViewerCount(1234);
+    try {
+      setLoading(true);
+      const response = await liveStreamAPI.getStream(streamId);
+      setStream(response.data.data);
+      setViewerCount(response.data.data.currentViewers || 0);
+      setComments(response.data.data.comments || []);
+    } catch (err) {
+      setError('Failed to load stream data');
+      toast.error('Failed to load stream data');
+      console.error('Fetch stream error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const joinStream = () => {
@@ -103,32 +103,68 @@ const LiveStream = () => {
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const sendComment = (e) => {
+  const sendComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
-    const comment = {
-      user: {
-        username: user.username,
-        avatar: user.avatar,
-      },
-      text: newComment,
-      timestamp: new Date(),
-    };
+    try {
+      await liveStreamAPI.addComment(streamId, newComment);
+      
+      const comment = {
+        user: {
+          username: user.username,
+          avatar: user.avatar,
+        },
+        text: newComment,
+        timestamp: new Date(),
+      };
 
-    socketService.emit('sendStreamComment', { streamId, comment });
-    setComments([...comments, comment]);
-    setNewComment('');
-    scrollToBottom();
+      setComments([...comments, comment]);
+      setNewComment('');
+      scrollToBottom();
+    } catch (err) {
+      toast.error('Failed to send comment');
+      console.error('Send comment error:', err);
+    }
   };
 
-  const sendLike = () => {
-    socketService.emit('sendStreamLike', { streamId, userId: user._id });
-    setIsLiked(true);
-    handleNewLike();
-    
-    setTimeout(() => setIsLiked(false), 1000);
+  const sendLike = async () => {
+    try {
+      await liveStreamAPI.addLike(streamId);
+      socketService.emit('sendStreamLike', { streamId, userId: user._id });
+      setIsLiked(true);
+      handleNewLike();
+      
+      setTimeout(() => setIsLiked(false), 1000);
+    } catch (err) {
+      toast.error('Failed to send like');
+      console.error('Send like error:', err);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-xl">Loading stream...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-xl text-center">
+          <p>Error loading stream</p>
+          <button 
+            onClick={() => navigate('/')} 
+            className="mt-4 px-4 py-2 bg-blue-500 rounded-lg"
+          >
+            Go Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen bg-black flex flex-col md:flex-row">
@@ -163,12 +199,12 @@ const LiveStream = () => {
         <div className="absolute top-4 right-4 left-4 md:left-auto flex items-center justify-between md:justify-end space-x-3">
           <div className="flex items-center space-x-3 bg-black/70 backdrop-blur-lg rounded-full px-4 py-2">
             <img
-              src={stream?.host.avatar}
-              alt={stream?.host.username}
+              src={stream?.host?.avatar}
+              alt={stream?.host?.username}
               className="w-8 h-8 rounded-full border-2 border-white"
             />
             <div>
-              <p className="text-white font-bold text-sm">@{stream?.host.username}</p>
+              <p className="text-white font-bold text-sm">@{stream?.host?.username}</p>
             </div>
           </div>
           
@@ -223,19 +259,20 @@ const LiveStream = () => {
         {/* Comments List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide">
           {comments.map((comment, index) => (
-            <div key={index} className="flex items-start space-x-2 animate-fadeIn">
+            <div key={index} className="flex items-start space-x-3">
               <img
-                src={comment.user.avatar}
-                alt={comment.user.username}
-                className="w-8 h-8 rounded-full flex-shrink-0"
+                src={comment.user?.avatar}
+                alt={comment.user?.username}
+                className="w-8 h-8 rounded-full"
               />
               <div className="flex-1">
-                <p className="text-sm">
-                  <span className="text-purple-400 font-semibold">
-                    @{comment.user.username}
+                <div className="flex items-center space-x-2">
+                  <span className="text-white text-sm font-bold">@{comment.user?.username}</span>
+                  <span className="text-gray-400 text-xs">
+                    {new Date(comment.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
-                  <span className="text-white ml-2">{comment.text}</span>
-                </p>
+                </div>
+                <p className="text-white text-sm mt-1">{comment.text}</p>
               </div>
             </div>
           ))}

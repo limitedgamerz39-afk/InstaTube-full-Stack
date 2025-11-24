@@ -1,221 +1,146 @@
-# InstaTube Deployment Guide
+## Security Considerations
 
-## Recommended: Render (Backend) + Netlify (Frontend)
+1. Change all default passwords before deployment
+2. Use HTTPS in production (configure SSL termination)
+3. Restrict access to admin ports (27017, 9001)
+4. Regularly update Docker images
+5. Monitor logs for suspicious activity
 
-This guide covers deploying your InstaTube app with Socket.io support.
+## HTTPS/SSL Configuration
 
----
+To enable HTTPS in production, you have several options:
 
-## 🚀 Part 1: Deploy Backend to Render
+### Option 1: Using Reverse Proxy (Nginx) with Let's Encrypt (Recommended)
 
-### Why Render?
-- ✅ Free tier available
-- ✅ Full WebSocket/Socket.io support
-- ✅ Easy deployment from GitHub
-- ✅ Automatic HTTPS
-
-### Steps:
-
-1. **Push Your Code to GitHub**
-   ```bash
-   git add .
-   git commit -m "Prepare for deployment"
-   git push origin main
-   ```
-
-2. **Create Render Account**
-   - Go to [render.com](https://render.com)
-   - Sign up with GitHub
-
-3. **Create New Web Service**
-   - Click "New +" → "Web Service"
-   - Connect your GitHub repository
-   - Select your InstaTube repo
-
-4. **Configure Build Settings**
-   - **Name**: `instatube-backend`
-   - **Region**: Choose closest to your users
-   - **Branch**: `main`
-   - **Root Directory**: `backend`
-   - **Environment**: `Node`
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
-   - **Plan**: Free
-
-5. **Add Environment Variables**
-   Click "Environment" and add:
-   ```
-   NODE_ENV=production
-   MONGO_URI=<your-mongodb-atlas-uri>
-   JWT_SECRET=<your-jwt-secret>
-   CLOUDINARY_CLOUD_NAME=<your-cloudinary-cloud-name>
-   CLOUDINARY_API_KEY=<your-cloudinary-api-key>
-   CLOUDINARY_API_SECRET=<your-cloudinary-api-secret>
-   ```
-
-6. **Deploy**
-   - Click "Create Web Service"
-   - Wait for deployment (2-3 minutes)
-   - Note your backend URL: `https://instatube-backend.onrender.com`
-
----
-
-## 🎨 Part 2: Deploy Frontend to Netlify
-
-### Steps:
-
-1. **Create Netlify Account**
-   - Go to [netlify.com](https://netlify.com)
-   - Sign up with GitHub
-
-2. **Create New Site**
-   - Click "Add new site" → "Import an existing project"
-   - Connect to GitHub
-   - Select your InstaTube repository
-
-3. **Configure Build Settings**
-   - **Base directory**: `frontend`
-   - **Build command**: `npm run build`
-   - **Publish directory**: `frontend/dist`
-
-4. **Add Environment Variables**
-   Go to "Site configuration" → "Environment variables":
-   ```
-   VITE_API_URL=https://instatube-backend.onrender.com/api
-   VITE_SOCKET_URL=https://instatube-backend.onrender.com
-   ```
-   ⚠️ **Important**: Replace with your actual Render backend URL from Part 1
-
-5. **Deploy**
-   - Click "Deploy site"
-   - Wait for build to complete
-   - Your site will be live at: `https://your-site-name.netlify.app`
-
----
-
-## 🔧 Update Backend CORS
-
-After deploying frontend, update your backend CORS to allow the Netlify domain:
-
-1. Go to your Render dashboard
-2. Open your backend service
-3. Go to "Environment" tab
-4. Add environment variable:
-   ```
-   FRONTEND_URL=https://your-site-name.netlify.app
-   ```
-
-Or manually update `backend/server.js` to include your Netlify URL in the `allowedOrigins` array.
-
----
-
-## 📱 Custom Domain (Optional)
-
-### For Netlify Frontend:
-1. Go to "Domain settings"
-2. Click "Add custom domain"
-3. Follow DNS configuration steps
-
-### For Render Backend:
-1. Go to "Settings" → "Custom Domain"
-2. Add your domain
-3. Configure DNS records
-
----
-
-## ✅ Post-Deployment Checklist
-
-- [ ] Backend is running on Render
-- [ ] Frontend is deployed on Netlify
-- [ ] Environment variables are set correctly
-- [ ] CORS allows Netlify domain
-- [ ] Test user registration
-- [ ] Test login
-- [ ] Test post creation
-- [ ] Test real-time features (messages, notifications)
-- [ ] Test Socket.io connection (check browser console)
-
----
-
-## 🐛 Troubleshooting
-
-### Socket.io Not Connecting
-- Check backend URL in `VITE_SOCKET_URL`
-- Verify CORS settings include your Netlify domain
-- Check browser console for connection errors
-- Ensure Render service is running (free tier may sleep after inactivity)
-
-### Images Not Uploading
-- Verify Cloudinary credentials in Render environment variables
-- Check file size limits (max 10MB configured)
-
-### 404 Errors on Frontend Routes
-- Ensure `netlify.toml` redirects are configured
-- Redeploy if needed
-
-### Database Connection Issues
-- Whitelist Render's IP in MongoDB Atlas (or use 0.0.0.0/0)
-- Verify MONGO_URI is correct
-
----
-
-## 💰 Free Tier Limitations
-
-### Render Free Tier:
-- Services sleep after 15 minutes of inactivity
-- First request after sleep takes ~30 seconds
-- 750 hours/month (enough for one service)
-
-**Solution**: Use a free uptime monitoring service like [UptimeRobot](https://uptimerobot.com) to ping your backend every 10 minutes to keep it awake.
-
-### Netlify Free Tier:
-- 100GB bandwidth/month
-- 300 build minutes/month
-- Unlimited sites
-
----
-
-## 🚀 Alternative: Deploy to Railway
-
-If you prefer Railway over Render:
-
-1. Go to [railway.app](https://railway.app)
-2. "New Project" → "Deploy from GitHub repo"
-3. Select your repo
-4. Set root directory to `backend`
-5. Add same environment variables
-6. Railway auto-detects Node.js and deploys
-
-Railway provides $5 free credit monthly.
-
----
-
-## 📝 Notes
-
-- **MongoDB Atlas**: Make sure to whitelist `0.0.0.0/0` (all IPs) in Network Access for cloud deployments
-- **Cloudinary**: Free tier: 25GB storage, 25GB bandwidth/month
-- **Auto-deploy**: Both Render and Netlify support auto-deploy on git push
-
----
-
-## 🎯 Quick Deploy Summary
-
+1. **Install Certbot for Let's Encrypt:**
 ```bash
-# 1. Deploy Backend to Render
-# - Connect GitHub repo
-# - Set root directory: backend
-# - Add environment variables
-# - Deploy
+# On Ubuntu/Debian
+sudo apt update
+sudo apt install certbot python3-certbot-nginx
 
-# 2. Deploy Frontend to Netlify
-# - Connect GitHub repo
-# - Set base directory: frontend
-# - Add VITE_API_URL and VITE_SOCKET_URL
-# - Deploy
-
-# 3. Update backend CORS with Netlify URL
-# 4. Test all features
-# 5. Done! 🎉
+# On CentOS/RHEL
+sudo yum install certbot python3-certbot-nginx
 ```
 
-Your InstaTube app is now live with full Socket.io support!
+2. **Obtain SSL Certificate:**
+```bash
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+```
+
+3. **Auto-renewal Setup:**
+```bash
+# Test renewal
+sudo certbot renew --dry-run
+
+# Add to crontab for automatic renewal
+sudo crontab -e
+# Add this line:
+0 12 * * * /usr/bin/certbot renew --quiet
+```
+
+### Option 2: Using Traefik with Let's Encrypt (Docker)
+
+Update your docker-compose.yml to include Traefik:
+
+```yaml
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v2.9
+    container_name: instatube_traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.myresolver.acme.email=your-email@example.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+    networks:
+      - instatube_network
+
+  # Add labels to your frontend service
+  frontend:
+    # ... existing frontend configuration ...
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`yourdomain.com`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=myresolver"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+```
+
+### Option 3: Manual SSL Certificate Configuration
+
+1. **Obtain SSL Certificate from Certificate Authority**
+2. **Place certificate files in a secure directory**
+3. **Update Nginx configuration in frontend/nginx.conf:**
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name yourdomain.com;
+    
+    ssl_certificate /path/to/your/certificate.crt;
+    ssl_certificate_key /path/to/your/private.key;
+    
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers off;
+    
+    # ... rest of your existing configuration ...
+}
+
+# Redirect HTTP to HTTPS
+server {
+    listen 80;
+    server_name yourdomain.com;
+    return 301 https://$server_name$request_uri;
+}
+```
+
+### Option 4: Using Cloudflare SSL (Easiest)
+
+1. **Sign up for Cloudflare**
+2. **Point your domain's nameservers to Cloudflare**
+3. **Enable SSL/TLS in Cloudflare dashboard**
+4. **Choose "Flexible" SSL mode for easiest setup**
+
+## Environment Configuration for HTTPS
+
+Update your environment variables in docker-compose.yml:
+
+```yaml
+# Backend environment variables
+- NODE_ENV=production
+- FRONTEND_URL=https://yourdomain.com
+
+# Frontend environment variables
+- VITE_API_URL=https://yourdomain.com/api
+- VITE_SOCKET_URL=https://yourdomain.com
+```
+
+Also update your backend/server.js to handle HTTPS properly:
+
+```javascript
+// ✅ HTTPS enforcement in production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https' && !req.secure) {
+      res.redirect(`https://${req.header('host')}${req.url}`);
+    } else {
+      next();
+    }
+  });
+}
+```

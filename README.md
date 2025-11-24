@@ -1,8 +1,8 @@
-# 🎨 InstaTube - Next-Gen Social Media Platform
+# 🎨 D4D HUB - Next-Gen Social Media Platform
 
 <div align="center">
 
-![InstaTube Logo](https://img.shields.io/badge/InstaTube-Ultimate-purple?style=for-the-badge&logo=instagram)
+![D4D HUB Logo](https://img.shields.io/badge/D4D-HUB--purple?style=for-the-badge&logo=instagram)
 ![Version](https://img.shields.io/badge/version-2.0.0-pink?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-amber?style=for-the-badge)
 
@@ -14,7 +14,7 @@
 
 ### Core Features
 - 🔐 **Authentication** - JWT-based auth with bcrypt password hashing
-- 👤 **User Profiles** - Customizable profiles with avatar, bio, followers/following
+- 👤 **User Profiles** - Customizable profiles with avatar, bio, subscriber/subscribed
 - 📸 **Posts** - Create posts with image/video uploads via Cloudinary
 - ❤️ **Interactions** - Like and comment on posts in real-time
 - 🔔 **Notifications** - Real-time notifications via Socket.io
@@ -26,9 +26,27 @@
 - 🌍 **Explore** - Discover trending content and hashtags
 - 📊 **Analytics** - View your content performance
 - 📅 **Schedule Posts** - Plan your content in advance
-- 👥 **Close Friends** - Share content with select followers
+- 👥 **Close Friends** - Share content with select subscriber
 - 📱 **Responsive Design** - Mobile-first design with Tailwind CSS
 - ⚡ **Real-time Updates** - Live likes, comments, and notifications
+
+### 🔒 Security Features
+- **JWT Authentication** - Secure token-based authentication with short-lived access tokens and refresh tokens
+- **Password Hashing** - bcrypt with 12 rounds for enhanced security
+- **Input Validation** - Mongoose schema validation with express-mongo-sanitize and xss-clean
+- **CORS Protection** - Configured for Replit and Netlify
+- **Rate Limiting** - API rate limiting to prevent abuse
+- **Security Headers** - Helmet for comprehensive security headers
+- **Password Policy** - Strong password requirements (8+ chars, uppercase, lowercase, number)
+- **Email Verification** - Email verification for new accounts
+- **Password Reset** - Secure password reset functionality
+- **Two-Factor Authentication** - TOTP-based 2FA with backup codes
+- **Login Activity Tracking** - Monitor all login attempts with device and location info
+- **File Upload Security** - Type validation, size limits, EXIF stripping, and malicious content scanning
+- **HTTPS Enforcement** - Automatic redirect to HTTPS in production
+- **API Versioning** - Support for versioned API endpoints
+- **Cookie Consent** - GDPR-compliant cookie consent banner
+- **Security Monitoring** - Real-time security event monitoring and suspicious activity detection
 
 ### Admin Features (NEW! 🎉)
 - 🔐 **Admin Panel** - Complete admin dashboard with statistics
@@ -38,6 +56,7 @@
 - 📊 **Dashboard Stats** - Monitor platform metrics and activity
 - 🔍 **Search & Filter** - Advanced search for users and posts
 - ⚡ **Quick Actions** - Perform bulk operations efficiently
+- 🛡️ **Security Dashboard** - Monitor security events and suspicious activities
 
 **[📖 Admin Panel Setup Guide](ADMIN_SETUP.md)** | **[📘 Full Admin Documentation](ADMIN_PANEL_GUIDE.md)**
 
@@ -50,6 +69,8 @@
 - Socket.io
 - Cloudinary
 - Multer
+- Redis
+- MinIO
 
 ### Frontend
 - React.js (Vite)
@@ -63,7 +84,7 @@
 ## 📁 Project Structure
 
 ```
-instatube/
+d4d-hub/
 ├── backend/
 │   ├── config/
 │   ├── controllers/
@@ -98,7 +119,7 @@ instatube/
 
 ```bash
 # If you have the files, navigate to the project root
-cd instatube
+cd d4d-hub
 ```
 
 ### 2️⃣ Backend Setup
@@ -200,6 +221,7 @@ node scripts/makeUserAdmin.js your-email@example.com
 - Post moderation and deletion
 - Role-based access control
 - Search and filter capabilities
+- Security monitoring dashboard
 
 For detailed setup instructions, see [ADMIN_SETUP.md](ADMIN_SETUP.md)
 
@@ -208,7 +230,7 @@ For detailed setup instructions, see [ADMIN_SETUP.md](ADMIN_SETUP.md)
 ### Backend (.env)
 
 ```env
-MONGO_URI=mongodb://localhost:27017/instatube
+MONGO_URI=mongodb://localhost:27017/d4dhub
 JWT_SECRET=your_super_secret_jwt_key_change_in_production
 PORT=5000
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
@@ -225,6 +247,25 @@ VITE_API_URL=http://localhost:5000/api
 VITE_SOCKET_URL=http://localhost:5000
 ```
 
+## 🌐 Self-Hosting Guide
+
+To make your D4D HUB application accessible from anywhere on the internet, follow the self-hosting guide:
+
+### Prerequisites
+- A computer to run the application
+- A public IP address or domain name
+- Router access for port forwarding
+- MongoDB installed locally or accessible
+- MinIO installed and running
+
+### Quick Setup
+1. Update configuration files with your public IP or domain
+2. Configure MinIO for external access
+3. Set up port forwarding on your router
+4. Start all services using the provided startup script
+
+For detailed instructions, see [SELF_HOSTING_GUIDE.md](SELF_HOSTING_GUIDE.md)
+
 ## 🎯 API Endpoints
 
 ### Admin (Protected - Admin Only)
@@ -238,6 +279,7 @@ VITE_SOCKET_URL=http://localhost:5000
 - `DELETE /api/admin/posts/:postId` - Delete post
 - `GET /api/admin/reports` - Get reported content
 - `GET /api/admin/search` - Search users/posts
+- `GET /api/admin/security` - Get security dashboard data
 
 ### Authentication
 - `POST /api/auth/register` - Register new user
@@ -248,7 +290,7 @@ VITE_SOCKET_URL=http://localhost:5000
 ### Users
 - `GET /api/users/:username` - Get user profile
 - `PUT /api/users/profile` - Update profile
-- `POST /api/users/:id/follow` - Follow/unfollow user
+- `POST /api/users/:id/subscribe` - Subscribe/unsubscribe user
 - `GET /api/users/search?q=query` - Search users
 - `GET /api/users/suggestions` - Get user suggestions
 
@@ -301,7 +343,7 @@ lsof -ti:5000 | xargs kill -9
 1. **Sign Up** - Create a new account
 2. **Complete Profile** - Go to Settings and update your profile
 3. **Upload Post** - Click the + icon to create your first post
-4. **Follow Users** - Search for users and follow them
+4. **Subscribe to Users** - Search for users and subscribe to them
 5. **Interact** - Like and comment on posts
 6. **Check Notifications** - View real-time notifications
 
@@ -325,6 +367,19 @@ limits: {
 ```
 
 ## 🚀 Deployment
+
+### Docker Deployment (Recommended for Production)
+
+This project includes Docker configurations for production deployment:
+
+1. **Prerequisites**: Install Docker and Docker Compose
+2. **Setup**: Run `setup.bat` (Windows) or follow manual steps in `DEPLOYMENT_GUIDE.md`
+3. **Access**: 
+   - Frontend: http://localhost:5001
+   - Backend API: http://localhost:3000
+   - MinIO Console: http://localhost:9001
+
+All services (MongoDB, Redis, MinIO, Backend, Frontend) are containerized and orchestrated with Docker Compose.
 
 ### Backend (Heroku/Railway/Render)
 1. Push code to GitHub

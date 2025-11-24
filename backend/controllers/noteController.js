@@ -23,7 +23,7 @@ export const createNote = async (req, res) => {
       user: req.user._id,
       content,
       emoji: emoji || '',
-      visibility: visibility || 'followers',
+      visibility: visibility || 'subscriber',
     });
 
     const populatedNote = await Note.findById(note._id)
@@ -57,15 +57,15 @@ export const getUserNotes = async (req, res) => {
   }
 };
 
-// @desc    Get notes from following
-// @route   GET /api/notes/following
+// @desc    Get notes from subscribed
+// @route   GET /api/notes/subscribed
 // @access  Private
-export const getFollowingNotes = async (req, res) => {
+export const getsubscribedNotes = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
 
     const notes = await Note.find({
-      user: { $in: user.following },
+      user: { $in: user.subscribed },
       expiresAt: { $gt: new Date() },
     })
       .populate('user', 'username profilePicture fullName verified')
@@ -73,7 +73,7 @@ export const getFollowingNotes = async (req, res) => {
 
     res.json({ success: true, notes });
   } catch (error) {
-    console.error('Error fetching following notes:', error);
+    console.error('Error fetching subscribed notes:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch notes' });
   }
 };

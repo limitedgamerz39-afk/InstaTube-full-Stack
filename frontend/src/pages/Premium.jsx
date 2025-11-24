@@ -79,7 +79,7 @@ const Premium = () => {
             <AiOutlineCrown size={64} className="text-yellow-500" />
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
-            InstaTube Premium
+            friendflix Premium
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300">
             Unlock the best experience with Premium features

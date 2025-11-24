@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { postAPI } from '../services/api';
 import socketService from '../services/socket';
@@ -12,21 +12,37 @@ import {
   AiOutlineShareAlt,
 } from 'react-icons/ai';
 import { BsBookmark, BsBookmarkFill, BsThreeDots, BsArchive } from 'react-icons/bs';
-import { FiSend } from 'react-icons/fi';
-import { timeAgo } from '../utils/timeAgo';
+import { FiSend, FiCopy, FiTwitter, FiFacebook, FiLinkedin, FiMusic } from 'react-icons/fi';
+import { IoLocationOutline, IoEllipsisHorizontal, IoShareOutline, IoPencilOutline, IoTrashOutline, IoFlagOutline, IoBanOutline, IoPlay, IoHeart, IoHeartOutline, IoChatbubbleOutline, IoBookmark, IoBookmarkOutline } from 'react-icons/io5';
+import { formatDistanceToNow } from 'date-fns';
 import CommentBox from './CommentBox';
 import ImageCarousel from './ImageCarousel';
 import CaptionWithLinks from './CaptionWithLinks';
+import { motion } from 'framer-motion';
 
 const PostCard = ({ post: initialPost, onDelete }) => {
   const { user } = useAuth();
   const [post, setPost] = useState(initialPost);
   const [showComments, setShowComments] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const [isLiked, setIsLiked] = useState(post.likes.includes(user?._id));
   const [likesCount, setLikesCount] = useState(post.likes.length);
   const [isSaved, setIsSaved] = useState(false);
   const [isArchived, setIsArchived] = useState(post.isArchived || false);
+
+  // Memoize the media array to prevent unnecessary re-renders
+  const mediaArray = useMemo(() => {
+    if (!post.media && !post.mediaUrl) return [];
+    
+    if (post.media && Array.isArray(post.media)) {
+      return post.media.filter(m => m && m.url);
+    } else if (post.mediaUrl) {
+      return [{ url: post.mediaUrl, type: post.mediaType || 'image' }];
+    }
+    
+    return [];
+  }, [post.media, post.mediaUrl, post.mediaType]);
 
   useEffect(() => {
     socketService.on('postLiked', (data) => {
@@ -96,6 +112,54 @@ const PostCard = ({ post: initialPost, onDelete }) => {
     }
   };
 
+  // Sharing functions
+  const copyLink = () => {
+    const postUrl = `${window.location.origin}/post/${post._id}`;
+    navigator.clipboard.writeText(postUrl);
+    toast.success('Link copied to clipboard!');
+    setShowShareMenu(false);
+  };
+
+  const shareToTwitter = () => {
+    const postUrl = encodeURIComponent(`${window.location.origin}/post/${post._id}`);
+    const text = encodeURIComponent(post.caption || 'Check out this post!');
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${postUrl}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const shareToFacebook = () => {
+    const postUrl = encodeURIComponent(`${window.location.origin}/post/${post._id}`);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${postUrl}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const shareToLinkedIn = () => {
+    const postUrl = encodeURIComponent(`${window.location.origin}/post/${post._id}`);
+    const title = encodeURIComponent('Check out this post!');
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${postUrl}&title=${title}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const shareNative = async () => {
+    const postUrl = `${window.location.origin}/post/${post._id}`;
+    const text = post.caption || 'Check out this post!';
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'D4D HUB Post',
+          text: text,
+          url: postUrl,
+        });
+        setShowShareMenu(false);
+      } catch (error) {
+        console.log('Sharing failed:', error);
+      }
+    } else {
+      copyLink();
+    }
+  };
+
   const getCategoryBadge = () => {
     if (!post.category) return null;
     
@@ -119,176 +183,309 @@ const PostCard = ({ post: initialPost, onDelete }) => {
     );
   };
 
+  // Function to display audio information
+  const renderAudioInfo = () => {
+    if (!post.audio || !post.audio.title) return null;
+    
+    return (
+      <div className="flex items-center gap-2 mt-2 p-2 bg-gray-100 dark:bg-dark-card rounded-lg">
+        <FiMusic className="text-purple-500 flex-shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+            {post.audio.title}
+          </p>
+          {post.audio.extractedBy && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              by {post.audio.extractedBy.username}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const handleShare = async () => {
+    try {
+      const url = post.media?.[0]?.url || post.mediaUrl || `${window.location.origin}/posts/${post._id}`;
+      if (navigator.share) {
+        await navigator.share({
+          title: post.title || `@${post.author.username} on D4D HUB`,
+          text: post.caption || 'Check out this post!',
+          url,
+        });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success('Link copied to clipboard');
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      toast.error('Unable to share post');
+    }
+  };
+
+  const handlePlayVideo = () => {
+    // Implement video playback logic here
+  };
+
+  const handleComment = () => {
+    setShowComments(!showComments);
+  };
+
+  const handleEdit = () => {
+    // Implement edit post logic here
+  };
+
+  const handleReport = () => {
+    // Implement report post logic here
+  };
+
+  const handleBlock = () => {
+    // Implement block user logic here
+  };
+
+  const isOwnPost = user?._id === post.author?._id;
+
+  const defaultAvatar = '/path/to/default-avatar.jpg';
+  const defaultThumbnail = '/path/to/default-thumbnail.jpg';
+  const defaultImage = '/path/to/default-image.jpg';
+
+  const navigate = useNavigate();
+  const postUrl = `${window.location.origin}/post/${post._id}`;
+
+  const shareData = {
+    title: 'D4D HUB Post',
+    text: post.caption || 'Check out this post!',
+    url: postUrl,
+  };
+
   return (
-    <div className="card mb-6 overflow-hidden animate-fadeIn hover:shadow-card-hover transition-all duration-300">
+    <motion.article
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="bg-white dark:bg-dark-card rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 dark:border-dark-border"
+      aria-label={`Post by ${post.author?.username || 'unknown user'}`}
+    >
       {/* Post Header */}
-      <div className="flex items-center justify-between p-4 pb-3">
-        <Link
-          to={`/profile/${post.author.username}`}
-          className="flex items-center gap-3 group"
-        >
-          <div className="relative">
+      <div className="p-4 flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <Link to={`/profile/${post.author?.username}`}>
             <img
-              src={post.author.avatar}
-              alt={post.author.username}
-              className="h-11 w-11 rounded-full object-cover ring-2 ring-gray-200 dark:ring-dark-border group-hover:ring-primary-400 transition-all duration-200"
+              src={post.author?.avatar || defaultAvatar}
+              alt={`${post.author?.username} avatar`}
+              className="w-10 h-10 rounded-full object-cover border-2 border-primary-200 dark:border-dark-border"
+              onError={(e) => {
+                e.target.src = defaultAvatar;
+              }}
             />
-            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-success-500 rounded-full border-2 border-white dark:border-dark-card"></div>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <p className="font-bold text-gray-900 dark:text-white truncate group-hover:text-primary-500 transition-colors">
-                {post.author.username}
-              </p>
-              {getCategoryBadge()}
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{timeAgo(post.createdAt)}</p>
-          </div>
-        </Link>
-
-        {user?._id === post.author._id && (
-          <div className="relative">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-card-hover transition-colors text-gray-600 dark:text-gray-400"
+          </Link>
+          <div>
+            <Link 
+              to={`/profile/${post.author?.username}`} 
+              className="font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
             >
-              <BsThreeDots size={20} />
-            </button>
-
-            {showMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}></div>
-                <div className="absolute right-0 mt-2 w-48 card p-2 z-50 animate-scale-in">
+              {post.author?.username}
+            </Link>
+            <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
+              <span>
+                {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+              </span>
+              {post.location?.name && (
+                <>
+                  <span>•</span>
+                  <span className="flex items-center">
+                    <IoLocationOutline className="w-3 h-3 mr-1" />
+                    {post.location.name}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="relative">
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-dark-card-hover rounded-full transition-colors"
+            aria-label="Post options"
+            aria-expanded={showMenu}
+          >
+            <IoEllipsisHorizontal className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          </button>
+          
+          {showMenu && (
+            <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-dark-card rounded-xl shadow-lg border border-gray-200 dark:border-dark-border z-50">
+              <button
+                onClick={handleShare}
+                className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-card-hover flex items-center space-x-2 transition-colors"
+              >
+                <IoShareOutline className="w-4 h-4" />
+                <span>Share</span>
+              </button>
+              
+              {isOwnPost ? (
+                <>
                   <button
-                    onClick={handleArchive}
-                    className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-card-hover text-gray-700 dark:text-gray-300 transition-colors"
+                    onClick={handleEdit}
+                    className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-card-hover flex items-center space-x-2 transition-colors"
                   >
-                    <BsArchive className="w-4 h-4" />
-                    <span className="font-medium">{isArchived ? 'Unarchive' : 'Archive'}</span>
+                    <IoPencilOutline className="w-4 h-4" />
+                    <span>Edit</span>
                   </button>
                   <button
                     onClick={handleDelete}
-                    className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl hover:bg-danger-50 dark:hover:bg-danger-900/20 text-danger-500 transition-colors"
+                    className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center space-x-2 transition-colors"
                   >
-                    <AiOutlineDelete className="w-4 h-4" />
-                    <span className="font-medium">Delete</span>
+                    <IoTrashOutline className="w-4 h-4" />
+                    <span>Delete</span>
                   </button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleReport}
+                    className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-card-hover flex items-center space-x-2 transition-colors"
+                  >
+                    <IoFlagOutline className="w-4 h-4" />
+                    <span>Report</span>
+                  </button>
+                  <button
+                    onClick={handleBlock}
+                    className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center space-x-2 transition-colors"
+                  >
+                    <IoBanOutline className="w-4 h-4" />
+                    <span>Block User</span>
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Post Media with Carousel */}
-      {(post.media?.length > 0 || post.mediaUrl) ? (
-        <ImageCarousel
-          media={
-            post.media && post.media.length > 0
-              ? post.media
-              : post.mediaUrl
-              ? [{ url: post.mediaUrl, type: post.mediaType || 'image' }]
-              : null
-          }
-          onLike={handleLike}
-          isLiked={isLiked}
-        />
-      ) : (
-        <div className="w-full h-64 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-dark-card dark:to-dark-card-hover flex items-center justify-center">
-          <div className="text-center">
-            <span className="text-4xl mb-2 block">📷</span>
-            <p className="text-gray-500 dark:text-gray-400 font-medium">No media available</p>
-          </div>
-        </div>
-      )}
-
-      {/* Post Actions */}
-      <div className="p-4 pt-3">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={handleLike} 
-              className={`p-2 rounded-xl transition-all duration-200 ${
-                isLiked 
-                  ? 'bg-danger-50 dark:bg-danger-900/20 scale-110' 
-                  : 'hover:bg-gray-100 dark:hover:bg-dark-card-hover hover:scale-110'
-              }`}
-            >
-              {isLiked ? (
-                <AiFillHeart size={26} className="text-danger-500 animate-like-burst" />
-              ) : (
-                <AiOutlineHeart size={26} className="text-gray-700 dark:text-gray-300" />
-              )}
-            </button>
-
-            <button
-              onClick={() => setShowComments(!showComments)}
-              className={`p-2 rounded-xl transition-all duration-200 ${
-                showComments
-                  ? 'bg-info-50 dark:bg-info-900/20'
-                  : 'hover:bg-gray-100 dark:hover:bg-dark-card-hover'
-              } hover:scale-110`}
-            >
-              <AiOutlineComment size={26} className={showComments ? 'text-info-500' : 'text-gray-700 dark:text-gray-300'} />
-            </button>
-
-            <button className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-card-hover transition-all duration-200 hover:scale-110">
-              <FiSend size={24} className="text-gray-700 dark:text-gray-300" />
-            </button>
-          </div>
-
-          <button 
-            onClick={handleSave} 
-            className={`p-2 rounded-xl transition-all duration-200 ${
-              isSaved 
-                ? 'bg-warning-50 dark:bg-warning-900/20 scale-110' 
-                : 'hover:bg-gray-100 dark:hover:bg-dark-card-hover hover:scale-110'
-            }`}
-          >
-            {isSaved ? (
-              <BsBookmarkFill size={24} className="text-warning-500" />
-            ) : (
-              <BsBookmark size={24} className="text-gray-700 dark:text-gray-300" />
-            )}
-          </button>
-        </div>
-
-        {/* Likes Count */}
-        {likesCount > 0 && (
-          <p className="font-bold text-gray-900 dark:text-white mb-3">
-            {likesCount.toLocaleString()} {likesCount === 1 ? 'like' : 'likes'}
+      {/* Post Content */}
+      <div className="px-4 pb-3">
+        {post.caption && (
+          <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">
+            {post.caption}
           </p>
         )}
-
-        {/* Caption with Hashtags & Mentions */}
-        {post.caption && (
-          <div className="mb-3">
-            <CaptionWithLinks caption={post.caption} author={post.author} />
+        
+        {post.hashtags && post.hashtags.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {post.hashtags.map((tag, index) => (
+              <span 
+                key={index} 
+                className="text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+                onClick={() => navigate(`/explore/tags/${tag.slice(1)}`)}
+              >
+                {tag}
+              </span>
+            ))}
           </div>
         )}
-
-        {/* Location */}
-        {post.location && (
-          <div className="flex items-center gap-2 mb-3 text-sm text-gray-600 dark:text-gray-400">
-            <span className="text-base">📍</span>
-            <span className="font-medium">{post.location}</span>
-          </div>
-        )}
-
-        {/* Comments Preview */}
-        {post.comments.length > 0 && !showComments && (
-          <button
-            onClick={() => setShowComments(true)}
-            className="text-gray-500 dark:text-gray-400 text-sm font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors mb-2"
-          >
-            View all {post.comments.length} {post.comments.length === 1 ? 'comment' : 'comments'}
-          </button>
-        )}
-
-        {/* Comments Section */}
-        {showComments && <CommentBox post={post} setPost={setPost} />}
       </div>
-    </div>
+
+      {/* Media */}
+      <div className="relative">
+        {post.media?.[0]?.type === 'video' ? (
+          <div 
+            className="relative bg-black cursor-pointer"
+            onClick={handlePlayVideo}
+          >
+            <img
+              src={post.media[0].thumbnail || defaultThumbnail}
+              alt="Video thumbnail"
+              className="w-full aspect-video object-cover"
+              onError={(e) => {
+                e.target.src = defaultThumbnail;
+              }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-black/50 rounded-full p-4">
+                <IoPlay className="w-8 h-8 text-white" />
+              </div>
+            </div>
+            {post.durationSec && (
+              <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                {Math.floor(post.durationSec / 60)}:{String(post.durationSec % 60).padStart(2, '0')}
+              </div>
+            )}
+          </div>
+        ) : (
+          <img
+            src={post.media?.[0]?.url || defaultImage}
+            alt="Post content"
+            className="w-full aspect-square object-cover cursor-pointer"
+            onClick={() => navigate(`/posts/${post._id}`)}
+            onError={(e) => {
+              e.target.src = defaultImage;
+            }}
+          />
+        )}
+      </div>
+
+      {/* Post Actions */}
+      <div className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={handleLike}
+              className={`flex items-center space-x-1 transition-colors ${
+                isLiked 
+                  ? 'text-red-500 hover:text-red-600' 
+                  : 'text-gray-600 dark:text-gray-400 hover:text-red-500'
+              }`}
+              aria-label={isLiked ? "Unlike post" : "Like post"}
+            >
+              {isLiked ? (
+                <IoHeart className="w-6 h-6" fill="currentColor" />
+              ) : (
+                <IoHeartOutline className="w-6 h-6" />
+              )}
+              <span className="font-medium">
+                {post.likes?.length > 0 ? post.likes.length : ''}
+              </span>
+            </button>
+            
+            <button
+              onClick={handleComment}
+              className="flex items-center space-x-1 text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors"
+              aria-label="Comment on post"
+            >
+              <IoChatbubbleOutline className="w-6 h-6" />
+              <span className="font-medium">
+                {post.comments?.length > 0 ? post.comments.length : ''}
+              </span>
+            </button>
+            
+            <button
+              onClick={handleShare}
+              className="flex items-center space-x-1 text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors"
+              aria-label="Share post"
+            >
+              <IoShareOutline className="w-6 h-6" />
+            </button>
+          </div>
+          
+          <button
+            onClick={handleSave}
+            className={`transition-colors ${
+              isSaved 
+                ? 'text-primary-500 hover:text-primary-600' 
+                : 'text-gray-600 dark:text-gray-400 hover:text-primary-500'
+            }`}
+            aria-label={isSaved ? "Unsave post" : "Save post"}
+          >
+            {isSaved ? (
+              <IoBookmark className="w-6 h-6" fill="currentColor" />
+            ) : (
+              <IoBookmarkOutline className="w-6 h-6" />
+            )}
+          </button>
+        </div>
+      </div>
+    </motion.article>
   );
 };
 

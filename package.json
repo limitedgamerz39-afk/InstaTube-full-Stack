@@ -1,15 +1,50 @@
 {
-  "name": "workspace",
-  "version": "1.0.0",
-  "description": "<div align=\"center\">",
+  "name": "instatube",
+  "version": "2.0.0",
+  "description": "A modern, feature-rich social media platform with unique Purple/Pink/Amber design and 15+ advanced features",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "setup": "setup.bat",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && npm start",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "social-media",
+    "instagram-clone",
+    "mern-stack",
+    "react",
+    "nodejs",
+    "mongodb"
+  ],
+  "author": "InstaTube Team",
+  "license": "MIT",
   "dependencies": {
-    "minio": "^8.0.6"
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-navigation/bottom-tabs": "^7.8.5",
+    "@react-navigation/native": "^7.1.20",
+    "@react-navigation/stack": "^7.6.4",
+    "@tanstack/react-query": "^5.90.10",
+    "axios": "^1.13.2",
+    "browser-image-compression": "^2.0.2",
+    "fluent-ffmpeg": "^2.1.3",
+    "lucide-react": "^0.554.0",
+    "minio": "^8.0.6",
+    "react-hot-toast": "^2.6.0",
+    "react-native-elements": "^3.4.3",
+    "react-native-image-picker": "^8.2.1",
+    "react-native-safe-area-context": "^5.6.2",
+    "react-native-screens": "^4.18.0",
+    "react-native-vector-icons": "^10.3.0",
+    "react-native-video": "^6.18.0",
+    "recharts": "^3.4.1",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }

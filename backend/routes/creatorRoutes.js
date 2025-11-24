@@ -14,10 +14,10 @@ router.post('/enable-monetization', protect, async (req, res) => {
     const user = await User.findById(req.user._id);
 
     // Check eligibility
-    if (user.followers.length < 1000) {
+    if (user.subscriber.length < 1000) {
       return res.status(400).json({
         success: false,
-        message: 'You need at least 1,000 followers to enable monetization',
+        message: 'You need at least 1,000 subscriber to enable monetization',
       });
     }
 
@@ -102,7 +102,7 @@ router.get('/analytics', protect, async (req, res) => {
           pendingPayout: totalRevenue[0]?.pending || 0,
           subscribers: user.subscribersCount,
           totalWatchTime: user.totalWatchTime,
-          followers: user.followers.length,
+          subscriber: user.subscriber.length,
         },
         monthlyRevenue,
         revenueBySource,

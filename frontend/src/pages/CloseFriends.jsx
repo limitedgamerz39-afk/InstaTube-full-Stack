@@ -8,7 +8,7 @@ import { AiOutlineSearch } from 'react-icons/ai';
 const CloseFriends = () => {
   const { user } = useAuth();
   const [closeFriends, setCloseFriends] = useState([]);
-  const [allFollowing, setAllFollowing] = useState([]);
+  const [allsubscribed, setAllsubscribed] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -19,9 +19,9 @@ const CloseFriends = () => {
   const fetchData = async () => {
     try {
       const response = await userAPI.getProfile(user.username);
-      const following = response.data.data.following;
+      const subscribed = response.data.data.subscribed;
       
-      setAllFollowing(following);
+      setAllsubscribed(subscribed);
       // Get close friends from localStorage for now
       const saved = JSON.parse(localStorage.getItem('closeFriends') || '[]');
       setCloseFriends(saved);
@@ -48,7 +48,7 @@ const CloseFriends = () => {
 
   const isCloseFriend = (friendId) => closeFriends.includes(friendId);
 
-  const filteredFollowing = allFollowing.filter(friend =>
+  const filteredsubscribed = allsubscribed.filter(friend =>
     friend.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
     friend.fullName.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -103,7 +103,7 @@ const CloseFriends = () => {
             <AiOutlineSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
-              placeholder="Search following..."
+              placeholder="Search subscribed..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-white dark:bg-dark-card border-2 border-gray-200 dark:border-dark-border rounded-2xl focus:border-primary focus:outline-none dark:text-white"
@@ -114,14 +114,14 @@ const CloseFriends = () => {
         {/* Friends List */}
         <div className="card overflow-hidden">
           <div className="divide-y divide-gray-200 dark:divide-dark-border">
-            {filteredFollowing.length === 0 ? (
+            {filteredsubscribed.length === 0 ? (
               <div className="p-12 text-center">
                 <p className="text-gray-500 dark:text-gray-400">
-                  {searchQuery ? 'No users found' : 'You are not following anyone yet'}
+                  {searchQuery ? 'No users found' : 'You are not subscribed anyone yet'}
                 </p>
               </div>
             ) : (
-              filteredFollowing.map((friend) => (
+              filteredsubscribed.map((friend) => (
                 <div
                   key={friend._id}
                   className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-dark-border/50 transition"
@@ -164,9 +164,9 @@ const CloseFriends = () => {
         <div className="grid grid-cols-3 gap-4 mt-6">
           <div className="card p-4 text-center">
             <p className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              {allFollowing.length}
+              {allsubscribed.length}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Following</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Subscribed</p>
           </div>
           <div className="card p-4 text-center">
             <p className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
@@ -176,7 +176,7 @@ const CloseFriends = () => {
           </div>
           <div className="card p-4 text-center">
             <p className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              {allFollowing.length - closeFriends.length}
+              {allsubscribed.length - closeFriends.length}
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Others</p>
           </div>

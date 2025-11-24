@@ -92,32 +92,34 @@ function Playlists() {
             <p className="text-gray-500 dark:text-gray-400 text-lg">No playlists yet</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {playlists.map((playlist) => (
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+            {playlists
+              .sort(() => Math.random() - 0.5)
+              .map((playlist) => (
               <div
                 key={playlist._id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition cursor-pointer"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition cursor-pointer"
                 onClick={() => navigate(`/playlist/${playlist._id}`)}
               >
                 <div className="aspect-video bg-gradient-to-br from-purple-500 to-pink-500 rounded-t-lg flex items-center justify-center">
-                  <FiPlay className="w-16 h-16 text-white opacity-80" />
+                  <FiPlay className="w-12 h-12 sm:w-16 sm:h-16 text-white opacity-80" />
                 </div>
-                <div className="p-4">
+                <div className="p-3 sm:p-4">
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-1">
+                    <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-1 text-sm sm:text-base">
                       {playlist.title}
                     </h3>
                     {playlist.visibility === 'private' ? (
-                      <FiLock className="text-gray-500" />
+                      <FiLock className="text-gray-500 w-4 h-4" />
                     ) : (
-                      <FiGlobe className="text-gray-500" />
+                      <FiGlobe className="text-gray-500 w-4 h-4" />
                     )}
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-3">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-3">
                     {playlist.description || 'No description'}
                   </p>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">
+                    <span className="text-xs sm:text-sm text-gray-500">
                       {playlist.videoCount} videos
                     </span>
                     {playlist.creator._id === currentUser._id && (
@@ -126,13 +128,13 @@ function Playlists() {
                           className="text-blue-500 hover:text-blue-600"
                           onClick={() => navigate(`/playlist/${playlist._id}/edit`)}
                         >
-                          <FiEdit2 />
+                          <FiEdit2 className="w-4 h-4" />
                         </button>
                         <button
                           className="text-red-500 hover:text-red-600"
                           onClick={() => handleDeletePlaylist(playlist._id)}
                         >
-                          <FiTrash2 />
+                          <FiTrash2 className="w-4 h-4" />
                         </button>
                       </div>
                     )}

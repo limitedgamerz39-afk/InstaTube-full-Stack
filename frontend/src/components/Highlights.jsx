@@ -4,6 +4,23 @@ import { AiOutlinePlus } from 'react-icons/ai';
 const Highlights = ({ highlights = [], onCreateHighlight, onViewHighlight }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  // Default handlers if props are not provided
+  const handleCreateHighlight = () => {
+    if (onCreateHighlight) {
+      onCreateHighlight();
+    } else {
+      console.warn('onCreateHighlight function not provided');
+    }
+  };
+
+  const handleViewHighlight = (highlight) => {
+    if (onViewHighlight) {
+      onViewHighlight(highlight);
+    } else {
+      console.warn('onViewHighlight function not provided');
+    }
+  };
+
   return (
     <div className="py-4">
       <div className="flex items-center space-x-4 overflow-x-auto scrollbar-hide pb-2">
@@ -22,7 +39,7 @@ const Highlights = ({ highlights = [], onCreateHighlight, onViewHighlight }) => 
         {highlights.map((highlight) => (
           <button
             key={highlight._id}
-            onClick={() => onViewHighlight(highlight)}
+            onClick={() => handleViewHighlight(highlight)}
             className="flex-shrink-0 flex flex-col items-center group"
           >
             <div className="relative">
@@ -66,7 +83,7 @@ const Highlights = ({ highlights = [], onCreateHighlight, onViewHighlight }) => 
               </button>
               <button
                 onClick={() => {
-                  onCreateHighlight();
+                  handleCreateHighlight();
                   setShowCreateModal(false);
                 }}
                 className="flex-1 btn-primary"

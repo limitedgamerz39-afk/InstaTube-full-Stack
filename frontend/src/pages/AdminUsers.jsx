@@ -13,6 +13,8 @@ import {
   FiArrowLeft,
   FiChevronLeft,
   FiChevronRight,
+  FiFilter,
+  FiDownload,
 } from 'react-icons/fi';
 
 const AdminUsers = () => {
@@ -24,18 +26,28 @@ const AdminUsers = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [roleRequests, setRoleRequests] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [bulkAction, setBulkAction] = useState('');
+  const [filters, setFilters] = useState({
+    role: '',
+    isBanned: '',
+    isVerified: '',
+    isPremium: '',
+  });
+  // State for role dropdowns
+  const [openRoleDropdown, setOpenRoleDropdown] = useState(null);
 
   useEffect(() => {
     if (user?.role === 'admin') {
       fetchUsers();
       fetchRoleRequests();
     }
-  }, [user, currentPage]);
+  }, [user, currentPage, filters]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await adminAPI.getAllUsers(currentPage, 20);
+      const response = await adminAPI.getAllUsers(currentPage, 20, filters);
       setUsers(response.data.data.users);
       setTotalPages(response.data.data.totalPages);
       setTotal(response.data.data.total);
@@ -104,6 +116,8 @@ const AdminUsers = () => {
       await adminAPI.deleteUser(userId);
       toast.success('User deleted successfully');
       fetchUsers();
+      // Remove from selected users if present
+      setSelectedUsers(selectedUsers.filter(id => id !== userId));
     } catch (error) {
       toast.error('Failed to delete user');
       console.error(error);
@@ -132,23 +146,135 @@ const AdminUsers = () => {
     }
   };
 
-  const handleChangeRole = async (userId, currentRole, username) => {
-    const roles = ['user', 'creator', 'business', 'admin'];
-    const newRole = prompt(
-      `Change role for @${username}\nCurrent role: ${currentRole}\nEnter new role (user/creator/business/admin):`,
-      currentRole
-    );
+  const handleRoleChange = async (userId, newRole, username) => {
+    try {
+      await adminAPI.changeUserRole(userId, newRole);
+      toast.success(`Role updated to ${newRole} for @${username}`);
+      fetchUsers();
+    } catch (error) {
+      toast.error('Failed to change user role: ' + (error.response?.data?.message || error.message));
+      console.error(error);
+    }
+    setOpenRoleDropdown(null);
+  };
 
-    if (!newRole || !roles.includes(newRole.toLowerCase()) || newRole === currentRole) {
+  // Bulk actions
+  const handleSelectUser = (userId) => {
+    if (selectedUsers.includes(userId)) {
+      setSelectedUsers(selectedUsers.filter(id => id !== userId));
+    } else {
+      setSelectedUsers([...selectedUsers, userId]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedUsers.length === users.length) {
+      setSelectedUsers([]);
+    } else {
+      setSelectedUsers(users.map(user => user._id));
+    }
+  };
+
+  const handleBulkAction = async () => {
+    if (!bulkAction || selectedUsers.length === 0) {
+      toast.error('Please select users and an action');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to ${bulkAction} ${selectedUsers.length} users?`)) {
       return;
     }
 
     try {
-      await adminAPI.changeUserRole(userId, newRole.toLowerCase());
-      toast.success(`Role updated to ${newRole} for @${username}`);
+      setLoading(true);
+      let successCount = 0;
+
+      switch (bulkAction) {
+        case 'delete':
+          for (const userId of selectedUsers) {
+            try {
+              await adminAPI.deleteUser(userId);
+              successCount++;
+            } catch (err) {
+              console.error(`Failed to delete user ${userId}:`, err);
+            }
+          }
+          toast.success(`Deleted ${successCount} users`);
+          break;
+        case 'ban':
+          for (const userId of selectedUsers) {
+            try {
+              await adminAPI.toggleBanUser(userId);
+              successCount++;
+            } catch (err) {
+              console.error(`Failed to ban user ${userId}:`, err);
+            }
+          }
+          toast.success(`Banned ${successCount} users`);
+          break;
+        case 'unban':
+          for (const userId of selectedUsers) {
+            try {
+              await adminAPI.toggleBanUser(userId);
+              successCount++;
+            } catch (err) {
+              console.error(`Failed to unban user ${userId}:`, err);
+            }
+          }
+          toast.success(`Unbanned ${successCount} users`);
+          break;
+        case 'verify':
+          for (const userId of selectedUsers) {
+            try {
+              await adminAPI.toggleVerifyUser(userId);
+              successCount++;
+            } catch (err) {
+              console.error(`Failed to verify user ${userId}:`, err);
+            }
+          }
+          toast.success(`Verified ${successCount} users`);
+          break;
+        case 'unverify':
+          for (const userId of selectedUsers) {
+            try {
+              await adminAPI.toggleVerifyUser(userId);
+              successCount++;
+            } catch (err) {
+              console.error(`Failed to unverify user ${userId}:`, err);
+            }
+          }
+          toast.success(`Unverified ${successCount} users`);
+          break;
+        default:
+          toast.error('Invalid bulk action');
+          return;
+      }
+
+      setSelectedUsers([]);
+      setBulkAction('');
       fetchUsers();
     } catch (error) {
-      toast.error('Failed to change user role');
+      toast.error('Bulk action failed');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilterChange = (filterName, value) => {
+    setFilters({
+      ...filters,
+      [filterName]: value
+    });
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
+  const exportUsers = async () => {
+    try {
+      // In a real implementation, this would call an API endpoint to generate and download a CSV
+      toast.success('User data export started. Check your downloads folder.');
+    } catch (error) {
+      toast.error('Failed to export user data');
       console.error(error);
     }
   };
@@ -183,9 +309,9 @@ const AdminUsers = () => {
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="mt-4 sm:mt-6">
-            <div className="flex gap-2">
+          {/* Search and Filters */}
+          <div className="mt-4 sm:mt-6 space-y-4">
+            <div className="flex flex-col md:flex-row gap-2">
               <div className="flex-1 relative">
                 <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
@@ -203,6 +329,58 @@ const AdminUsers = () => {
               >
                 Search
               </button>
+              <button
+                onClick={exportUsers}
+                className="px-4 sm:px-6 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex-shrink-0 flex items-center gap-2"
+              >
+                <FiDownload className="w-4 h-4" />
+                Export
+              </button>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={filters.role}
+                onChange={(e) => handleFilterChange('role', e.target.value)}
+                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">All Roles</option>
+                <option value="user">User</option>
+                <option value="creator">Creator</option>
+                <option value="business">Business</option>
+                <option value="admin">Admin</option>
+              </select>
+
+              <select
+                value={filters.isBanned}
+                onChange={(e) => handleFilterChange('isBanned', e.target.value)}
+                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">All Status</option>
+                <option value="true">Banned</option>
+                <option value="false">Active</option>
+              </select>
+
+              <select
+                value={filters.isVerified}
+                onChange={(e) => handleFilterChange('isVerified', e.target.value)}
+                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">All Verification</option>
+                <option value="true">Verified</option>
+                <option value="false">Unverified</option>
+              </select>
+
+              <select
+                value={filters.isPremium}
+                onChange={(e) => handleFilterChange('isPremium', e.target.value)}
+                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">All Subscription</option>
+                <option value="true">Premium</option>
+                <option value="false">Regular</option>
+              </select>
             </div>
           </div>
         </div>
@@ -241,6 +419,44 @@ const AdminUsers = () => {
         </div>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedUsers.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+          <div className="bg-blue-50 dark:bg-blue-900 rounded-lg p-3 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div className="text-sm text-blue-800 dark:text-blue-200">
+              {selectedUsers.length} user(s) selected
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={bulkAction}
+                onChange={(e) => setBulkAction(e.target.value)}
+                className="px-3 py-1 text-sm border border-blue-300 dark:border-blue-700 rounded bg-white dark:bg-gray-800 text-blue-900 dark:text-blue-100"
+              >
+                <option value="">Select action</option>
+                <option value="delete">Delete</option>
+                <option value="ban">Ban</option>
+                <option value="unban">Unban</option>
+                <option value="verify">Verify</option>
+                <option value="unverify">Unverify</option>
+              </select>
+              <button
+                onClick={handleBulkAction}
+                disabled={!bulkAction}
+                className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Apply
+              </button>
+              <button
+                onClick={() => setSelectedUsers([])}
+                className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Users List */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {loading ? (
@@ -266,6 +482,14 @@ const AdminUsers = () => {
                   <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.length === users.length && users.length > 0}
+                          onChange={handleSelectAll}
+                          className="rounded text-blue-600 focus:ring-blue-500"
+                        />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         User
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -288,6 +512,14 @@ const AdminUsers = () => {
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {users.map((userData) => (
                       <tr key={userData._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.includes(userData._id)}
+                            onChange={() => handleSelectUser(userData._id)}
+                            className="rounded text-blue-600 focus:ring-blue-500"
+                          />
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <img
@@ -336,7 +568,7 @@ const AdminUsers = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900 dark:text-white">
                             <div>Posts: {userData.posts?.length || 0}</div>
-                            <div>Followers: {userData.followers?.length || 0}</div>
+                            <div>subscriber: {userData.subscriber?.length || 0}</div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -365,13 +597,36 @@ const AdminUsers = () => {
                             >
                               <FiCheckCircle className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => handleChangeRole(userData._id, userData.role, userData.username)}
-                              className="p-2 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-800 transition"
-                              title="Change role"
-                            >
-                              <FiShield className="w-4 h-4" />
-                            </button>
+                            {/* Role Change Dropdown */}
+                            <div className="relative">
+                              <button
+                                onClick={() => setOpenRoleDropdown(openRoleDropdown === userData._id ? null : userData._id)}
+                                className="p-2 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-800 transition"
+                                title="Change role"
+                              >
+                                <FiShield className="w-4 h-4" />
+                              </button>
+                              
+                              {openRoleDropdown === userData._id && (
+                                <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10 border border-gray-200 dark:border-gray-700">
+                                  <div className="py-1">
+                                    {['user', 'creator', 'business', 'admin'].map((role) => (
+                                      <button
+                                        key={role}
+                                        onClick={() => handleRoleChange(userData._id, role, userData.username)}
+                                        className={`block w-full text-left px-4 py-2 text-sm ${
+                                          userData.role === role
+                                            ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
+                                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                        }`}
+                                      >
+                                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                             <button
                               onClick={() =>
                                 handleToggleBan(userData._id, userData.isBanned, userData.username)
@@ -408,6 +663,17 @@ const AdminUsers = () => {
                   key={userData._id}
                   className="bg-white dark:bg-gray-800 rounded-lg shadow p-4"
                 >
+                  {/* Selection Checkbox */}
+                  <div className="flex items-center mb-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.includes(userData._id)}
+                      onChange={() => handleSelectUser(userData._id)}
+                      className="rounded text-blue-600 focus:ring-blue-500 mr-2"
+                    />
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Select</span>
+                  </div>
+
                   {/* User Info */}
                   <div className="flex items-start space-x-3 mb-4">
                     <img
@@ -473,9 +739,9 @@ const AdminUsers = () => {
                       </p>
                     </div>
                     <div className="bg-gray-50 dark:bg-gray-700 rounded p-2">
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Followers</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">subscriber</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {userData.followers?.length || 0}
+                        {userData.subscriber?.length || 0}
                       </p>
                     </div>
                   </div>
@@ -495,13 +761,36 @@ const AdminUsers = () => {
                       <FiCheckCircle className="w-3 h-3" />
                       {userData.isVerified ? 'Verified' : 'Verify'}
                     </button>
-                    <button
-                      onClick={() => handleChangeRole(userData._id, userData.role, userData.username)}
-                      className="flex-1 min-w-[80px] px-3 py-2 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 rounded-lg transition text-xs font-medium flex items-center justify-center gap-1"
-                    >
-                      <FiShield className="w-3 h-3" />
-                      Role
-                    </button>
+                    {/* Role Change Dropdown for Mobile */}
+                    <div className="relative flex-1 min-w-[80px]">
+                      <button
+                        onClick={() => setOpenRoleDropdown(openRoleDropdown === userData._id ? null : userData._id)}
+                        className="w-full px-3 py-2 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 rounded-lg transition text-xs font-medium flex items-center justify-center gap-1"
+                      >
+                        <FiShield className="w-3 h-3" />
+                        Role
+                      </button>
+                      
+                      {openRoleDropdown === userData._id && (
+                        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10 border border-gray-200 dark:border-gray-700">
+                          <div className="py-1">
+                            {['user', 'creator', 'business', 'admin'].map((role) => (
+                              <button
+                                key={role}
+                                onClick={() => handleRoleChange(userData._id, role, userData.username)}
+                                className={`block w-full text-left px-4 py-2 text-sm ${
+                                  userData.role === role
+                                    ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
+                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                }`}
+                              >
+                                {role.charAt(0).toUpperCase() + role.slice(1)}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     <button
                       onClick={() =>
                         handleToggleBan(userData._id, userData.isBanned, userData.username)

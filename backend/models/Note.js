@@ -24,8 +24,8 @@ const noteSchema = new mongoose.Schema(
     },
     visibility: {
       type: String,
-      enum: ['followers', 'close_friends'],
-      default: 'followers',
+      enum: ['subscriber', 'close_friends'],
+      default: 'subscriber',
     },
     likes: [
       {

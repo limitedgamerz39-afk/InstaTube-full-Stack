@@ -5,6 +5,16 @@ import { Readable } from 'stream';
 
 dotenv.config();
 
+// Log environment variables for debugging
+console.log('MinIO Environment Variables:', {
+  MINIO_ENDPOINT: process.env.MINIO_ENDPOINT,
+  MINIO_PORT: process.env.MINIO_PORT,
+  MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY ? 'SET' : 'NOT SET',
+  MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY ? 'SET' : 'NOT SET',
+  MINIO_BUCKET: process.env.MINIO_BUCKET,
+  MINIO_USE_SSL: process.env.MINIO_USE_SSL
+});
+
 const isMinIOConfigured = 
   process.env.MINIO_ENDPOINT &&
   process.env.MINIO_PORT &&
@@ -12,58 +22,64 @@ const isMinIOConfigured =
   process.env.MINIO_SECRET_KEY &&
   process.env.MINIO_BUCKET;
 
+console.log('Is MinIO Configured:', isMinIOConfigured);
+
 let minioClient;
 
 if (isMinIOConfigured) {
-  minioClient = new Client({
-    endPoint: process.env.MINIO_ENDPOINT,
-    port: parseInt(process.env.MINIO_PORT),
-    useSSL: process.env.MINIO_USE_SSL === 'true',
-    accessKey: process.env.MINIO_ACCESS_KEY,
-    secretKey: process.env.MINIO_SECRET_KEY,
-  });
-  
-  console.log('✅ MinIO configured successfully!');
-  console.log(`📦 Using bucket: ${process.env.MINIO_BUCKET}`);
-  
-  const bucketName = process.env.MINIO_BUCKET;
-  minioClient.bucketExists(bucketName, (err, exists) => {
-    if (err) {
-      console.error('❌ Error checking bucket:', err);
-      return;
-    }
-    if (!exists) {
-      console.log(`📦 Creating bucket: ${bucketName}`);
-      minioClient.makeBucket(bucketName, 'us-east-1', (err) => {
-        if (err) {
-          console.error('❌ Error creating bucket:', err);
-        } else {
-          console.log(`✅ Bucket created: ${bucketName}`);
-          
-          const policy = {
-            Version: '2012-10-17',
-            Statement: [
-              {
-                Effect: 'Allow',
-                Principal: { AWS: ['*'] },
-                Action: ['s3:GetObject'],
-                Resource: [`arn:aws:s3:::${bucketName}/*`],
-              },
-            ],
-          };
-          minioClient.setBucketPolicy(bucketName, JSON.stringify(policy), (err) => {
-            if (err) {
-              console.error('❌ Error setting bucket policy:', err);
-            } else {
-              console.log('✅ Bucket policy set to public read');
-            }
-          });
-        }
-      });
-    } else {
-      console.log(`✅ Bucket exists: ${bucketName}`);
-    }
-  });
+  try {
+    minioClient = new Client({
+      endPoint: process.env.MINIO_ENDPOINT,
+      port: parseInt(process.env.MINIO_PORT),
+      useSSL: process.env.MINIO_USE_SSL === 'true',
+      accessKey: process.env.MINIO_ACCESS_KEY,
+      secretKey: process.env.MINIO_SECRET_KEY,
+    });
+    
+    console.log('✅ MinIO configured successfully!');
+    console.log(`📦 Using bucket: ${process.env.MINIO_BUCKET}`);
+    
+    const bucketName = process.env.MINIO_BUCKET;
+    minioClient.bucketExists(bucketName, (err, exists) => {
+      if (err) {
+        console.error('❌ Error checking bucket:', err);
+        return;
+      }
+      if (!exists) {
+        console.log(`📦 Creating bucket: ${bucketName}`);
+        minioClient.makeBucket(bucketName, 'us-east-1', (err) => {
+          if (err) {
+            console.error('❌ Error creating bucket:', err);
+          } else {
+            console.log(`✅ Bucket created: ${bucketName}`);
+            
+            const policy = {
+              Version: '2012-10-17',
+              Statement: [
+                {
+                  Effect: 'Allow',
+                  Principal: { AWS: ['*'] },
+                  Action: ['s3:GetObject'],
+                  Resource: [`arn:aws:s3:::${bucketName}/*`],
+                },
+              ],
+            };
+            minioClient.setBucketPolicy(bucketName, JSON.stringify(policy), (err) => {
+              if (err) {
+                console.error('❌ Error setting bucket policy:', err);
+              } else {
+                console.log('✅ Bucket policy set to public read');
+              }
+            });
+          }
+        });
+      } else {
+        console.log(`✅ Bucket exists: ${bucketName}`);
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error initializing MinIO client:', error);
+  }
 } else {
   console.warn('⚠️  MinIO not configured - file uploads will be disabled');
   console.warn('Set MINIO_ENDPOINT, MINIO_PORT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, and MINIO_BUCKET');
@@ -76,7 +92,7 @@ const storage = multer.memoryStorage();
 export const upload = multer({
   storage,
   limits: {
-    fileSize: 200 * 1024 * 1024,
+    fileSize: 1500 * 1024 * 1024, // 1500MB
   },
   fileFilter: (req, file, cb) => {
     if (
@@ -95,7 +111,7 @@ export const upload = multer({
 export const uploadMultiple = multer({
   storage,
   limits: {
-    fileSize: 200 * 1024 * 1024,
+    fileSize: 1500 * 1024 * 1024, // 1500MB
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
@@ -106,7 +122,7 @@ export const uploadMultiple = multer({
   },
 }).array('media', 10);
 
-export const uploadToStorage = (fileBuffer, folder = 'instatube', originalName = 'file') => {
+export const uploadToStorage = (fileBuffer, folder = 'friendflix', originalName = 'file') => {
   if (!isMinIOConfigured) {
     return Promise.reject(new Error('MinIO is not configured. Please set up your credentials.'));
   }
@@ -117,6 +133,12 @@ export const uploadToStorage = (fileBuffer, folder = 'instatube', originalName =
     const bucketName = process.env.MINIO_BUCKET;
     
     const stream = Readable.from(fileBuffer);
+    
+    console.log('Uploading to MinIO:', {
+      bucketName,
+      fileName,
+      fileSize: fileBuffer.length
+    });
     
     minioClient.putObject(bucketName, fileName, stream, fileBuffer.length, (err, etag) => {
       if (err) {

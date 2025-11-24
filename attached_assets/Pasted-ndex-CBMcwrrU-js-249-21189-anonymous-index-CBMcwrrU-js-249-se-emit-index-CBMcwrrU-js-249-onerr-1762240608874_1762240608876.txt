@@ -319,8 +319,8 @@ un @ index-CBMcwrrU.js:41
 Ud @ index-CBMcwrrU.js:41
 R @ index-CBMcwrrU.js:26
 _e @ index-CBMcwrrU.js:26Understand this error
-profile/admin@123:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8icao4o2' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8icao4o2 net::ERR_FAILED 200 (OK)
+profile/admin@123:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8icao4o2' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8icao4o2 net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -943,8 +943,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-analytics:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8idkw2wi' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8idkw2wi net::ERR_FAILED 200 (OK)
+analytics:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8idkw2wi' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8idkw2wi net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -1567,8 +1567,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-analytics:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ig8tcyy' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ig8tcyy net::ERR_FAILED 200 (OK)
+analytics:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ig8tcyy' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ig8tcyy net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -2191,8 +2191,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-analytics:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ihja0kf' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ihja0kf net::ERR_FAILED 200 (OK)
+analytics:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ihja0kf' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ihja0kf net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -2815,8 +2815,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-analytics:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ik6yqcu' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ik6yqcu net::ERR_FAILED 200 (OK)
+analytics:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ik6yqcu' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ik6yqcu net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -3439,8 +3439,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-analytics:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ilhofbe' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ilhofbe net::ERR_FAILED 200 (OK)
+analytics:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ilhofbe' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ilhofbe net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -4063,8 +4063,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-profile/admin@123:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8io5dq2p' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8io5dq2p net::ERR_FAILED 200 (OK)
+profile/admin@123:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8io5dq2p' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8io5dq2p net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -4698,8 +4698,8 @@ un @ index-CBMcwrrU.js:41
 Ud @ index-CBMcwrrU.js:41
 R @ index-CBMcwrrU.js:26
 _e @ index-CBMcwrrU.js:26Understand this error
-instatube-app.vercel.app/:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ipfuysq' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ipfuysq net::ERR_FAILED 200 (OK)
+friendflix-app.vercel.app/:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ipfuysq' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ipfuysq net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -5322,8 +5322,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-instatube-app.vercel.app/:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8is3yie5' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8is3yie5 net::ERR_FAILED 200 (OK)
+friendflix-app.vercel.app/:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8is3yie5' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8is3yie5 net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -5946,8 +5946,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-instatube-app.vercel.app/:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8itdxsev' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8itdxsev net::ERR_FAILED 200 (OK)
+friendflix-app.vercel.app/:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8itdxsev' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8itdxsev net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -6570,8 +6570,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-instatube-app.vercel.app/:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8iw26iq9' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8iw26iq9 net::ERR_FAILED 200 (OK)
+friendflix-app.vercel.app/:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8iw26iq9' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8iw26iq9 net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -7194,8 +7194,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-instatube-app.vercel.app/:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ixc4y6v' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ixc4y6v net::ERR_FAILED 200 (OK)
+friendflix-app.vercel.app/:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ixc4y6v' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8ixc4y6v net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -7818,8 +7818,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-instatube-app.vercel.app/:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j00gjq9' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j00gjq9 net::ERR_FAILED 200 (OK)
+friendflix-app.vercel.app/:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j00gjq9' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j00gjq9 net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -8442,8 +8442,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-instatube-app.vercel.app/:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j1a9x07' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j1a9x07 net::ERR_FAILED 200 (OK)
+friendflix-app.vercel.app/:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j1a9x07' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j1a9x07 net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -9066,8 +9066,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-instatube-app.vercel.app/:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j3yk7pf' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j3yk7pf net::ERR_FAILED 200 (OK)
+friendflix-app.vercel.app/:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j3yk7pf' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j3yk7pf net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -9690,8 +9690,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-instatube-app.vercel.app/:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j58vkft' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j58vkft net::ERR_FAILED 200 (OK)
+friendflix-app.vercel.app/:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j58vkft' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j58vkft net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -10314,8 +10314,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-instatube-app.vercel.app/:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j970qwh' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j970qwh net::ERR_FAILED 200 (OK)
+friendflix-app.vercel.app/:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j970qwh' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j970qwh net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -10938,8 +10938,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-instatube-app.vercel.app/:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j7x6knc' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j7x6knc net::ERR_FAILED 200 (OK)
+friendflix-app.vercel.app/:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j7x6knc' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8j7x6knc net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -11562,8 +11562,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-instatube-app.vercel.app/:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8jd621cw' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8jd621cw net::ERR_FAILED 200 (OK)
+friendflix-app.vercel.app/:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8jd621cw' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8jd621cw net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249
@@ -12186,8 +12186,8 @@ bg @ index-CBMcwrrU.js:249
 Hg @ index-CBMcwrrU.js:249
 open @ index-CBMcwrrU.js:249
 (anonymous) @ index-CBMcwrrU.js:249Understand this error
-instatube-app.vercel.app/:1 Access to XMLHttpRequest at 'https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8jdavu7l' from origin 'https://instatube-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://instatube-web.netlify.app' that is not equal to the supplied origin.Understand this error
-index-CBMcwrrU.js:249  GET https://instatube-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8jdavu7l net::ERR_FAILED 200 (OK)
+friendflix-app.vercel.app/:1 Access to XMLHttpRequest at 'https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8jdavu7l' from origin 'https://friendflix-app.vercel.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://friendflix-web.netlify.app' that is not equal to the supplied origin.Understand this error
+index-CBMcwrrU.js:249  GET https://friendflix-full-stack.onrender.com/socket.io/?EIO=4&transport=polling&t=8jdavu7l net::ERR_FAILED 200 (OK)
 _create @ index-CBMcwrrU.js:249
 mt @ index-CBMcwrrU.js:249
 request @ index-CBMcwrrU.js:249

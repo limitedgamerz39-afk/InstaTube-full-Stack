@@ -1,5 +1,6 @@
 import Post from '../models/Post.js';
 import User from '../models/User.js';
+import redisClient from '../config/redis.js';
 
 // @desc    Get trending videos
 // @route   GET /api/trending/videos
@@ -8,6 +9,22 @@ export const getTrendingVideos = async (req, res) => {
   try {
     const timeframe = req.query.timeframe || '7d';
     const limit = parseInt(req.query.limit) || 50;
+    
+    // Try to get cached data
+    const cacheKey = `trending:videos:${timeframe}:${limit}`;
+    try {
+      const cachedData = await redisClient.get(cacheKey);
+      if (cachedData) {
+        console.log(`✅ Cache hit for trending videos (${timeframe})`);
+        return res.status(200).json({
+          success: true,
+          videos: JSON.parse(cachedData),
+          fromCache: true
+        });
+      }
+    } catch (cacheError) {
+      console.error('Cache read error:', cacheError);
+    }
 
     const daysMap = { '1d': 1, '7d': 7, '30d': 30 };
     const days = daysMap[timeframe] || 7;
@@ -53,8 +70,15 @@ export const getTrendingVideos = async (req, res) => {
       path: 'author',
       select: 'username profilePicture fullName verified',
     });
+    
+    // Cache the trending videos for 5 minutes
+    try {
+      await redisClient.setEx(cacheKey, 300, JSON.stringify(populatedVideos));
+    } catch (cacheError) {
+      console.error('Cache write error:', cacheError);
+    }
 
-    res.json({ success: true, videos: populatedVideos });
+    res.json({ success: true, videos: populatedVideos, fromCache: false });
   } catch (error) {
     console.error('Error fetching trending videos:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch trending videos' });
@@ -67,6 +91,22 @@ export const getTrendingVideos = async (req, res) => {
 export const getTrendingReels = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
+    
+    // Try to get cached data
+    const cacheKey = `trending:reels:${limit}`;
+    try {
+      const cachedData = await redisClient.get(cacheKey);
+      if (cachedData) {
+        console.log(`✅ Cache hit for trending reels`);
+        return res.status(200).json({
+          success: true,
+          reels: JSON.parse(cachedData),
+          fromCache: true
+        });
+      }
+    } catch (cacheError) {
+      console.error('Cache read error:', cacheError);
+    }
 
     const dateThreshold = new Date();
     dateThreshold.setDate(dateThreshold.getDate() - 7);
@@ -109,8 +149,15 @@ export const getTrendingReels = async (req, res) => {
       path: 'author',
       select: 'username profilePicture fullName verified',
     });
+    
+    // Cache the trending reels for 5 minutes
+    try {
+      await redisClient.setEx(cacheKey, 300, JSON.stringify(populatedReels));
+    } catch (cacheError) {
+      console.error('Cache write error:', cacheError);
+    }
 
-    res.json({ success: true, reels: populatedReels });
+    res.json({ success: true, reels: populatedReels, fromCache: false });
   } catch (error) {
     console.error('Error fetching trending reels:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch trending reels' });
@@ -123,6 +170,22 @@ export const getTrendingReels = async (req, res) => {
 export const getTrendingHashtags = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 20;
+    
+    // Try to get cached data
+    const cacheKey = `trending:hashtags:${limit}`;
+    try {
+      const cachedData = await redisClient.get(cacheKey);
+      if (cachedData) {
+        console.log(`✅ Cache hit for trending hashtags`);
+        return res.status(200).json({
+          success: true,
+          hashtags: JSON.parse(cachedData),
+          fromCache: true
+        });
+      }
+    } catch (cacheError) {
+      console.error('Cache read error:', cacheError);
+    }
 
     const dateThreshold = new Date();
     dateThreshold.setDate(dateThreshold.getDate() - 7);
@@ -172,8 +235,15 @@ export const getTrendingHashtags = async (req, res) => {
         },
       },
     ]);
+    
+    // Cache the trending hashtags for 10 minutes
+    try {
+      await redisClient.setEx(cacheKey, 600, JSON.stringify(trendingHashtags));
+    } catch (cacheError) {
+      console.error('Cache write error:', cacheError);
+    }
 
-    res.json({ success: true, hashtags: trendingHashtags });
+    res.json({ success: true, hashtags: trendingHashtags, fromCache: false });
   } catch (error) {
     console.error('Error fetching trending hashtags:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch trending hashtags' });
@@ -186,6 +256,22 @@ export const getTrendingHashtags = async (req, res) => {
 export const getTrendingCreators = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 20;
+    
+    // Try to get cached data
+    const cacheKey = `trending:creators:${limit}`;
+    try {
+      const cachedData = await redisClient.get(cacheKey);
+      if (cachedData) {
+        console.log(`✅ Cache hit for trending creators`);
+        return res.status(200).json({
+          success: true,
+          creators: JSON.parse(cachedData),
+          fromCache: true
+        });
+      }
+    } catch (cacheError) {
+      console.error('Cache read error:', cacheError);
+    }
 
     const dateThreshold = new Date();
     dateThreshold.setDate(dateThreshold.getDate() - 30);
@@ -198,7 +284,7 @@ export const getTrendingCreators = async (req, res) => {
       },
       {
         $addFields: {
-          followerCount: { $size: { $ifNull: ['$followers', []] } },
+          followerCount: { $size: { $ifNull: ['$subscriber', []] } },
         },
       },
       {
@@ -272,8 +358,15 @@ export const getTrendingCreators = async (req, res) => {
         },
       },
     ]);
+    
+    // Cache the trending creators for 10 minutes
+    try {
+      await redisClient.setEx(cacheKey, 600, JSON.stringify(trendingCreators));
+    } catch (cacheError) {
+      console.error('Cache write error:', cacheError);
+    }
 
-    res.json({ success: true, creators: trendingCreators });
+    res.json({ success: true, creators: trendingCreators, fromCache: false });
   } catch (error) {
     console.error('Error fetching trending creators:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch trending creators' });

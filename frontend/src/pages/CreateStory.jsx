@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { storyAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { AiOutlineCloudUpload, AiOutlineClose } from 'react-icons/ai';
+import AREffects from '../components/AREffects';
 
 const CreateStory = () => {
   const navigate = useNavigate();
@@ -10,6 +11,8 @@ const CreateStory = () => {
   const [file, setFile] = useState(null);
   const [caption, setCaption] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedEffect, setSelectedEffect] = useState('none');
+  const [location, setLocation] = useState('');
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -49,6 +52,8 @@ const CreateStory = () => {
       const formData = new FormData();
       formData.append('media', file);
       formData.append('caption', caption);
+      formData.append('effect', selectedEffect);
+      if (location) formData.append('location', location);
 
       await storyAPI.createStory(formData);
       toast.success('Story created successfully!');
@@ -123,6 +128,23 @@ const CreateStory = () => {
                 className="w-full max-h-[70vh] object-contain rounded-lg"
               />
             )}
+
+            {/* AR Effects */}
+            <AREffects 
+              selectedEffect={selectedEffect} 
+              setSelectedEffect={setSelectedEffect} 
+            />
+
+            {/* Location Input */}
+            <div className="mt-4">
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Add location..."
+                className="w-full px-4 py-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
 
             {/* Caption Input */}
             <div className="mt-4">

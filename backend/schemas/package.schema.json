@@ -1,7 +1,7 @@
 {
-  "$id": "https://instatube.local/schemas/package.schema.json",
+  "$id": "https://friendflix.local/schemas/package.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Local Package.json Schema (InstaTube)",
+  "title": "Local Package.json Schema (friendflix)",
   "type": "object",
   "additionalProperties": true,
   "properties": {

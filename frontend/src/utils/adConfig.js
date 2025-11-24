@@ -28,7 +28,7 @@ export const AD_CONFIG = {
       skipAfter: 3,
     },
     postRoll: {
-      enabled: false,
+      enabled: true,
       duration: 5,
       skipAfter: 2,
     }

@@ -23,8 +23,8 @@ const updateDefaultImages = async () => {
       },
       {
         $set: {
-          avatar: `${frontendUrl}/default-avatar.png`,
-          coverImage: `${frontendUrl}/default-bg.jpg`
+          avatar: '/default-avatar.png',
+          coverImage: '/default-bg.jpg'
         }
       }
     );

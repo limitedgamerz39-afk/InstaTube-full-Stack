@@ -1,4 +1,4 @@
-# Netlify configuration for InstaTube Frontend
+# Netlify configuration for friendflix Frontend
 
 [build]
   base = "frontend"

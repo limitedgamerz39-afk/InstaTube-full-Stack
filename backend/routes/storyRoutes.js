@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   createStory,
-  getFollowingStories,
+  getsubscribedStories,
   getUserStories,
   viewStory,
   replyToStory,
@@ -13,7 +13,7 @@ import { upload } from '../config/minio.js';
 const router = express.Router();
 
 router.post('/', protect, upload.single('media'), createStory);
-router.get('/following', protect, getFollowingStories);
+router.get('/subscribed', protect, getsubscribedStories);
 router.get('/user/:userId', protect, getUserStories);
 router.post('/:id/view', protect, viewStory);
 router.post('/:id/reply', protect, replyToStory);

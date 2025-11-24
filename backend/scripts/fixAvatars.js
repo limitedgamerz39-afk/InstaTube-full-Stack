@@ -23,7 +23,7 @@ const fixAvatars = async () => {
       },
       {
         $set: {
-          avatar: `${frontendUrl}/default-avatar.png`
+          avatar: '/default-avatar.png'
         }
       }
     );
@@ -41,7 +41,7 @@ const fixAvatars = async () => {
       },
       {
         $set: {
-          coverImage: `${frontendUrl}/default-bg.jpg`
+          coverImage: '/default-bg.jpg'
         }
       }
     );

@@ -2,193 +2,224 @@ import Post from '../models/Post.js';
 import User from '../models/User.js';
 import Comment from '../models/Comment.js';
 import Notification from '../models/Notification.js';
+import Audio from '../models/Audio.js';
 import { uploadToStorage, deleteFromStorage } from '../config/minio.js';
+import redisClient from '../config/redis.js';
+import { uploadMultiple } from '../middleware/uploadMiddleware.js';
+import { generateSafeFilename, validateFileType, scanForMaliciousContent, stripExifData } from '../utils/fileProcessing.js';
+import { logSecurityEvent } from '../services/securityService.js';
+import { cacheWithParams } from '../middleware/cacheMiddleware.js';
+import { checkAndAwardAchievements } from '../services/achievementService.js';
 
 // @desc    Create new post
 // @route   POST /api/posts
 // @access  Private
 export const createPost = async (req, res) => {
   try {
-    const { title, description, caption, tags, location, visibility, madeForKids, allowComments, scheduledAt, videoLanguage, license, topicCategory, playlistName, paidPromotion, ageRestricted, allowEmbedding, locationLat, locationLng, category: rawCategory, derivedFrom, remixType, videoStartSec, videoEndSec, playbackRate } = req.body;
+    const { title, description, caption, tags, location, visibility, madeForKids, allowComments, scheduledAt, videoLanguage, license, topicCategory, playlistName, paidPromotion, ageRestricted, contentWarnings, customWarning, allowEmbedding, locationLat, locationLng, category: rawCategory, derivedFrom, remixType, videoStartSec, videoEndSec, playbackRate, filter, beautyFilter, productTags, isBusinessProfile, shoppingCartEnabled, checkInLocation, highlightTitle, igtvTitle, audioId, chapters } = req.body;
     const category = (rawCategory || 'image').toLowerCase();
 
     if (!['image', 'short', 'long'].includes(category)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid category. Use image, short, or long.',
+        message: 'Invalid category',
       });
     }
 
-    const role = req.user.role;
-    const canUploadLong = ['creator', 'business', 'admin'].includes(role);
-    if (category === 'long' && !canUploadLong) {
-      return res.status(403).json({
-        success: false,
-        message: 'Only creators, business, or admin can upload long videos',
-      });
-    }
-
-    // Basic validations
-    if (!title || !title.trim()) {
-      return res.status(400).json({ success: false, message: 'Title is required' });
-    }
-    if (title.length > 100) {
-      return res.status(400).json({ success: false, message: 'Title cannot exceed 100 characters' });
-    }
-    if (description && description.length > 5000) {
-      return res.status(400).json({ success: false, message: 'Description cannot exceed 5000 characters' });
-    }
-
-    // Get media files from request
-    const mediaFiles = (req.files && req.files.media) ? req.files.media : (req.files ? req.files : (req.file ? [req.file] : []));
-
-    if (!mediaFiles || mediaFiles.length === 0) {
+    // Validate files
+    if (!req.files || !req.files.media || req.files.media.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Please upload at least one image or video',
+        message: 'Please upload at least one media file',
       });
     }
 
-    // Validate files by category
-    if (category === 'image') {
-      for (const f of mediaFiles) {
-        if (!f.mimetype.startsWith('image/')) {
-          return res.status(400).json({ success: false, message: 'Only images allowed for image posts' });
-        }
+    // Process and validate uploaded files
+    const processedFiles = [];
+    for (const file of req.files.media) {
+      // Validate file content
+      const isValidContent = validateFileType(file.buffer, file.mimetype);
+      if (!isValidContent) {
+        // Log security event
+        await logSecurityEvent('suspicious_file_upload', 'File content does not match file type', 'high', { mimeType: file.mimetype, originalName: file.originalname }, req);
+        return res.status(400).json({
+          success: false,
+          message: 'File content does not match file type.',
+        });
       }
-    } else {
-      if (mediaFiles.length !== 1) {
-        return res.status(400).json({ success: false, message: 'Only one video allowed for shorts/long videos' });
+
+      // Scan for malicious content
+      const scanResult = scanForMaliciousContent(file.buffer);
+      if (!scanResult.isSafe) {
+        // Log security event
+        await logSecurityEvent('malicious_content_detected', scanResult.reason, 'critical', { mimeType: file.mimetype, originalName: file.originalname }, req);
+        return res.status(400).json({
+          success: false,
+          message: `Security scan failed: ${scanResult.reason}`,
+        });
       }
-      if (!mediaFiles[0].mimetype.startsWith('video/')) {
-        return res.status(400).json({ success: false, message: 'Only video files allowed for shorts/long videos' });
+
+      // Strip EXIF data for images
+      if (file.mimetype.startsWith('image/')) {
+        file.buffer = await stripExifData(file.buffer);
       }
+
+      processedFiles.push(file);
     }
 
-    console.log('📤 Uploading', mediaFiles.length, 'file(s) to MinIO...');
+    // Upload media files to storage
+    const mediaUrls = [];
+    for (const file of processedFiles) {
+      const safeFilename = generateSafeFilename(file.originalname);
+      const result = await uploadToStorage(file.buffer, 'friendflix/posts', safeFilename);
+      mediaUrls.push({
+        url: result.secure_url,
+        type: file.mimetype.startsWith('video') ? 'video' : 'image',
+      });
+    }
 
-    // Upload all files in parallel
-    const uploadResults = await Promise.all(
-      mediaFiles.map((file) => uploadToStorage(file.buffer, 'instatube/posts', file.originalname))
-    );
-
-    let durationSec;
-    if (category !== 'image') {
-      durationSec = Math.round(uploadResults[0]?.duration || 0);
+    // Handle thumbnail if provided
+    let thumbnailUrl = null;
+    if (req.files.thumbnail && req.files.thumbnail.length > 0) {
+      // Process thumbnail file
+      const thumbnailFile = req.files.thumbnail[0];
       
-      // Note: MinIO doesn't provide video duration metadata like Cloudinary does
-      // Duration validation is skipped for self-hosted MinIO setups
-      // If duration is provided (e.g., from client or future metadata extraction), validate it
-      if (durationSec > 0) {
-        const limit = category === 'short' ? 60 : 3600;
-        if (durationSec > limit) {
-          const publicId = uploadResults[0]?.public_id;
-          if (publicId) {
-            try {
-              await deleteFromStorage(publicId);
-            } catch (e) {
-              console.warn('MinIO cleanup failed:', e?.message);
-            }
-          }
-          return res.status(400).json({
-            success: false,
-            message: category === 'short' ? 'Shorts must be 60 seconds or less' : 'Long videos must be 1 hour or less',
-          });
+      // Validate thumbnail content
+      const isValidContent = validateFileType(thumbnailFile.buffer, thumbnailFile.mimetype);
+      if (!isValidContent) {
+        // Log security event
+        await logSecurityEvent('suspicious_file_upload', 'Thumbnail content does not match file type', 'high', { mimeType: thumbnailFile.mimetype, originalName: thumbnailFile.originalname }, req);
+        return res.status(400).json({
+          success: false,
+          message: 'Thumbnail content does not match file type.',
+        });
+      }
+
+      // Scan for malicious content
+      const scanResult = scanForMaliciousContent(thumbnailFile.buffer);
+      if (!scanResult.isSafe) {
+        // Log security event
+        await logSecurityEvent('malicious_content_detected', scanResult.reason, 'critical', { mimeType: thumbnailFile.mimetype, originalName: thumbnailFile.originalname }, req);
+        return res.status(400).json({
+          success: false,
+          message: `Security scan failed for thumbnail: ${scanResult.reason}`,
+        });
+      }
+
+      // Strip EXIF data for thumbnail images
+      if (thumbnailFile.mimetype.startsWith('image/')) {
+        thumbnailFile.buffer = await stripExifData(thumbnailFile.buffer);
+      }
+
+      const safeThumbnailName = generateSafeFilename(thumbnailFile.originalname);
+      const thumbnailResult = await uploadToStorage(thumbnailFile.buffer, 'friendflix/thumbnails', safeThumbnailName);
+      thumbnailUrl = thumbnailResult.secure_url;
+    }
+
+    // Process location data
+    let locationData = {};
+    if (location) {
+      locationData.name = location;
+      if (locationLat) locationData.lat = Number(locationLat);
+      if (locationLng) locationData.lng = Number(locationLng);
+    }
+
+    // Process check-in location data
+    let checkInLocationData = {};
+    if (checkInLocation) {
+      checkInLocationData.name = checkInLocation;
+      if (locationLat) checkInLocationData.lat = Number(locationLat);
+      if (locationLng) checkInLocationData.lng = Number(locationLng);
+    }
+
+    // Calculate duration for videos
+    let durationSec = undefined;
+    if (category !== 'image' && mediaUrls.length > 0 && mediaUrls[0].type === 'video') {
+      // In a real implementation, you would extract duration from the video file
+      // For now, we'll set a default duration
+      durationSec = category === 'short' ? 30 : 300;
+    }
+
+    // Check if audioId is provided and valid
+    let audio = null;
+    if (audioId) {
+      try {
+        audio = await Audio.findById(audioId);
+        if (!audio) {
+          console.warn('Invalid audio ID provided:', audioId);
         }
-      } else {
-        console.log('⚠️  Video duration not available - skipping duration validation (MinIO limitation)');
+      } catch (audioError) {
+        console.error('Error fetching audio:', audioError);
       }
     }
 
-    const mediaArray = mediaFiles.map((file, idx) => ({
-      url: uploadResults[idx].secure_url,
-      type: file.mimetype.startsWith('video') ? 'video' : 'image',
-    }));
-
-    console.log('✅ Upload successful!');
-
-    // Optional thumbnail upload
-    let thumbnailUrl;
-    try {
-      const thumbFile = req.files?.thumbnail?.[0];
-      if (thumbFile) {
-        const thumbUpload = await uploadToStorage(thumbFile.buffer, 'instatube/thumbnails', thumbFile.originalname);
-        thumbnailUrl = thumbUpload.secure_url;
+    // Process chapters if provided
+    let processedChapters = [];
+    if (chapters) {
+      try {
+        const chapterArray = Array.isArray(chapters) ? chapters : JSON.parse(chapters);
+        if (Array.isArray(chapterArray)) {
+          processedChapters = chapterArray.map(chapter => ({
+            timestamp: Number(chapter.timestamp),
+            title: String(chapter.title).trim()
+          })).filter(chapter => 
+            !isNaN(chapter.timestamp) && 
+            chapter.timestamp >= 0 && 
+            chapter.title && 
+            chapter.title.length > 0 && 
+            chapter.title.length <= 100
+          );
+        }
+      } catch (parseError) {
+        console.warn('Error parsing chapters:', parseError);
       }
-    } catch (e) {
-      console.warn('Thumbnail upload failed:', e?.message);
     }
-
-    // Extract hashtags from caption
-    const hashtags = caption ? caption.match(/#[a-zA-Z0-9_]+/g) || [] : [];
-    const cleanHashtags = hashtags.map(tag => tag.substring(1).toLowerCase());
-
-    // Simple keyword extraction from caption and tags
-    const keywordSet = new Set();
-    if (caption) {
-      caption
-        .toLowerCase()
-        .replace(/[^a-z0-9_\s#@]/g, ' ')
-        .split(/\s+/)
-        .filter(w => w && w.length > 3 && !w.startsWith('#') && !w.startsWith('@'))
-        .slice(0, 20)
-        .forEach(w => keywordSet.add(w));
-    }
-    if (tags) {
-      tags.split(',').map(t => t.trim().toLowerCase()).forEach(t => keywordSet.add(t));
-    }
-    const keywords = Array.from(keywordSet);
-    const visibilityVal = ['public', 'private', 'unlisted'].includes((visibility || 'public').toLowerCase())
-      ? (visibility || 'public').toLowerCase()
-      : 'public';
-    const licenseVal = ((license || 'standard').toLowerCase() === 'creative_commons') ? 'creative_commons' : 'standard';
-    const allowEmbeddingVal = typeof allowEmbedding === 'undefined' ? true : String(allowEmbedding) === 'true';
-    const paidPromotionVal = !!paidPromotion;
-    const ageRestrictedVal = !!ageRestricted;
-    const locationLatNum = typeof locationLat !== 'undefined' && locationLat !== '' ? Number(locationLat) : undefined;
-    const locationLngNum = typeof locationLng !== 'undefined' && locationLng !== '' ? Number(locationLng) : undefined;
-    const scheduledDate = scheduledAt ? new Date(scheduledAt) : undefined;
-
-    // Extract mentions from caption
-    const mentions = caption ? caption.match(/@[a-zA-Z0-9_]+/g) || [] : [];
-    const usernames = mentions.map(mention => mention.substring(1));
-    const mentionedUsers = await User.find({ username: { $in: usernames } });
 
     // Create post
     const post = await Post.create({
       author: req.user._id,
-      title: title?.trim() || '',
-      description: description?.trim() || '',
-      caption,
-      media: mediaArray,
-      mediaUrl: mediaArray[0].url, // For backward compatibility
-      mediaType: mediaArray[0].type,
-      thumbnailUrl: thumbnailUrl || undefined,
-      tags: tags ? tags.split(',').map((tag) => tag.trim()) : [],
-      hashtags: cleanHashtags,
-      mentions: mentionedUsers.map(u => u._id),
-      location: location || '',
-      visibility: visibilityVal,
-      madeForKids: !!madeForKids,
-      allowComments: typeof allowComments === 'undefined' ? true : String(allowComments) === 'true',
-      scheduledAt: scheduledDate,
+      title: title || '',
+      description: description || '',
+      caption: caption || '',
+      tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
+      location: locationData,
+      visibility: visibility || 'public',
+      madeForKids: madeForKids === 'true',
+      allowComments: allowComments !== 'false',
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
       videoLanguage: videoLanguage || 'en',
-      license: licenseVal,
-      topicCategory: topicCategory || undefined,
-      playlistName: playlistName || undefined,
-      paidPromotion: paidPromotionVal,
-      ageRestricted: ageRestrictedVal,
-      allowEmbedding: allowEmbeddingVal,
-      locationLat: locationLatNum,
-      locationLng: locationLngNum,
+      license: license || 'standard',
+      topicCategory: topicCategory || '',
+      paidPromotion: paidPromotion === 'true',
+      ageRestricted: ageRestricted === 'true',
+      contentWarnings: contentWarnings || [],
+      customWarning: customWarning || '',
+      allowEmbedding: allowEmbedding !== 'false',
       category,
-      durationSec: category === 'image' ? undefined : durationSec,
+      media: mediaUrls,
+      mediaUrl: mediaUrls[0]?.url, // For backward compatibility
+      mediaType: mediaUrls[0]?.type, // For backward compatibility
+      thumbnail: thumbnailUrl, // Add thumbnail URL
+      durationSec,
       derivedFrom: derivedFrom || undefined,
       remixType: remixType || undefined,
-      keywords,
+      keywords: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
       videoStartSec: typeof videoStartSec !== 'undefined' ? Number(videoStartSec) : undefined,
       videoEndSec: typeof videoEndSec !== 'undefined' ? Number(videoEndSec) : undefined,
       playbackRate: typeof playbackRate !== 'undefined' ? Number(playbackRate) : undefined,
+      // Instagram-like features
+      filter: filter || 'normal',
+      beautyFilter: beautyFilter || 'none',
+      productTags: productTags ? JSON.parse(productTags) : [],
+      isBusinessProfile: isBusinessProfile === 'true',
+      shoppingCartEnabled: shoppingCartEnabled === 'true',
+      checkInLocation: checkInLocationData,
+      highlightTitle: highlightTitle || '',
+      igtvTitle: igtvTitle || '',
+      // Video chapters
+      chapters: processedChapters,
+      // Audio association
+      audio: audio ? audio._id : undefined
     });
 
     // Add post to user's posts array
@@ -196,27 +227,66 @@ export const createPost = async (req, res) => {
       $push: { posts: post._id },
     });
 
-    const populatedPost = await Post.findById(post._id).populate(
-      'author',
-      'username fullName avatar'
-    );
+    // Populate author details
+    await post.populate('author', 'username fullName avatar isVerified isCreator');
+    
+    // Populate audio details if audio is associated
+    if (audio) {
+      await post.populate('audio', 'title artist');
+    }
+
+    // Create notification for followers (except for scheduled posts)
+    if (!scheduledAt) {
+      const followers = await User.find({ subscribedTo: req.user._id }).select('_id');
+      const followerIds = followers.map(follower => follower._id);
+
+      // Create notifications for followers
+      const notifications = followerIds.map(followerId => ({
+        recipient: followerId,
+        sender: req.user._id,
+        type: 'new_post',
+        post: post._id,
+        message: `${req.user.username} just posted a new ${category}`,
+      }));
+
+      if (notifications.length > 0) {
+        await Notification.insertMany(notifications);
+        
+        // Emit socket event to notify followers
+        const io = req.app.get('io');
+        followerIds.forEach(followerId => {
+          io.to(followerId.toString()).emit('newNotification', {
+            message: `${req.user.username} just posted a new ${category}`,
+            type: 'new_post',
+            sender: req.user._id,
+            post: post._id,
+          });
+        });
+      }
+    }
+
+    // Check and award achievements for post creation
+    try {
+      await checkAndAwardAchievements(req.user._id, 'post_created', { 
+        postId: post._id, 
+        category: post.category 
+      });
+    } catch (achievementError) {
+      console.error('Error checking achievements:', achievementError);
+    }
 
     res.status(201).json({
       success: true,
       message: 'Post created successfully',
-      data: populatedPost,
+      data: post,
     });
   } catch (error) {
-    console.error('❌ Post creation error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      error: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    });
+    console.error('❌ Create post error:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Get feed posts (from followed users)
+// @desc    Get feed posts (from subscribed users)
 // @route   GET /api/posts/feed
 // @access  Private
 export const getFeedPosts = async (req, res) => {
@@ -227,23 +297,32 @@ export const getFeedPosts = async (req, res) => {
 
     const currentUser = await User.findById(req.user._id);
 
-    // Fetch candidate posts (followed + own), lean for performance
+    // Count total posts for pagination metadata
+    const total = await Post.countDocuments({
+      author: { $in: [...currentUser.subscribed, currentUser._id] },
+      isArchived: { $ne: true },
+    });
+
+    // Fetch candidate posts (subscribed + own), lean for performance
+    // Add index hint for better performance
     const posts = await Post.find({
-      author: { $in: [...currentUser.following, currentUser._id] },
+      author: { $in: [...currentUser.subscribed, currentUser._id] },
       isArchived: { $ne: true },
     })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('author', 'username fullName avatar')
+      .populate('author', 'username fullName avatar subscriber')
       .populate({
         path: 'comments',
         populate: { path: 'author', select: 'username fullName avatar' },
         options: { sort: { createdAt: -1 }, limit: 2 },
       })
-      .lean();
+      .populate('audio') // Populate audio field
+      .lean()
+      .hint({ author: 1, createdAt: -1 }); // Index hint for better performance
 
-    // Compute simple engagement score (Instagram/YouTube-inspired)
+    // Compute simple engagement score (Instagram/friendflix-inspired)
     const now = Date.now();
     const halfLifeMs = 24 * 60 * 60 * 1000; // 24h recency decay
     const scored = posts.map((p) => {
@@ -265,8 +344,9 @@ export const getFeedPosts = async (req, res) => {
       pagination: {
         page,
         limit,
-        total: scored.length,
-        pages: Math.ceil(scored.length / limit),
+        total,
+        pages: Math.ceil(total / limit),
+        hasMore: page < Math.ceil(total / limit)
       },
     });
   } catch (error) {
@@ -280,7 +360,7 @@ export const getFeedPosts = async (req, res) => {
 export const getPost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
-      .populate('author', 'username fullName avatar')
+      .populate('author', 'username fullName avatar subscriber')
       .populate({
         path: 'comments',
         populate: {
@@ -292,7 +372,9 @@ export const getPost = async (req, res) => {
       .populate({
         path: 'pinnedComment',
         populate: { path: 'author', select: 'username fullName avatar' },
-      });
+      })
+      .populate('audio') // Populate audio field
+      .lean(); // Add lean() for better performance
 
     if (!post) {
       return res.status(404).json({
@@ -300,6 +382,10 @@ export const getPost = async (req, res) => {
         message: 'Post not found',
       });
     }
+
+    // Increment view count
+    post.views = (post.views || 0) + 1;
+    await Post.findByIdAndUpdate(req.params.id, { views: post.views });
 
     res.status(200).json({
       success: true,
@@ -372,60 +458,59 @@ export const likePost = async (req, res) => {
       });
     }
 
-    const isLiked = post.likes.includes(req.user._id);
+    // Check if user already liked the post
+    const alreadyLiked = post.likes.some(
+      (like) => like.toString() === req.user._id.toString()
+    );
 
-    if (isLiked) {
-      // Unlike
+    if (alreadyLiked) {
+      // Unlike the post
       post.likes = post.likes.filter(
-        (id) => id.toString() !== req.user._id.toString()
+        (like) => like.toString() !== req.user._id.toString()
       );
-      await post.save();
-
-      res.status(200).json({
-        success: true,
-        message: 'Post unliked',
-        isLiked: false,
-        likesCount: post.likes.length,
+      
+      // Decrement user's likes given count
+      await User.findByIdAndUpdate(req.user._id, {
+        $inc: { likesGivenCount: -1 }
       });
     } else {
-      // Like
+      // Like the post
       post.likes.push(req.user._id);
-      await post.save();
 
-      // Create notification (if not own post)
+      // Create notification if user is not liking their own post
       if (post.author.toString() !== req.user._id.toString()) {
-        const notification = await Notification.create({
+        await Notification.create({
           recipient: post.author,
           sender: req.user._id,
           type: 'like',
           post: post._id,
           message: `${req.user.username} liked your post`,
         });
-
-        const populatedNotification = await Notification.findById(
-          notification._id
-        ).populate('sender', 'username fullName avatar');
-
-        // Emit socket event
-        const io = req.app.get('io');
-        io.to(post.author.toString()).emit('notification', populatedNotification);
       }
-
-      // Emit real-time like update
-      const io = req.app.get('io');
-      io.emit('postLiked', {
-        postId: post._id,
-        userId: req.user._id,
-        likesCount: post.likes.length,
+      
+      // Increment user's likes given count for achievements
+      await User.findByIdAndUpdate(req.user._id, {
+        $inc: { likesGivenCount: 1 }
       });
-
-      res.status(200).json({
-        success: true,
-        message: 'Post liked',
-        isLiked: true,
-        likesCount: post.likes.length,
-      });
+      
+      // Check and award achievements for liking
+      try {
+        await checkAndAwardAchievements(req.user._id, 'liked');
+      } catch (achievementError) {
+        console.error('Error checking achievements:', achievementError);
+      }
     }
+
+    await post.save();
+
+    res.status(200).json({
+      success: true,
+      message: alreadyLiked ? 'Post unliked' : 'Post liked',
+      data: {
+        likes: post.likes.length,
+        isLiked: !alreadyLiked,
+      },
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -434,10 +519,10 @@ export const likePost = async (req, res) => {
   }
 };
 
-// @desc    Add comment to post
+// @desc    Comment on post
 // @route   POST /api/posts/:id/comment
 // @access  Private
-export const addComment = async (req, res) => {
+export const commentOnPost = async (req, res) => {
   try {
     const { text } = req.body;
 
@@ -457,25 +542,25 @@ export const addComment = async (req, res) => {
       });
     }
 
-    // Create comment
     const comment = await Comment.create({
-      post: post._id,
+      text: text.trim(),
       author: req.user._id,
-      text,
+      post: post._id,
     });
 
     // Add comment to post
     post.comments.push(comment._id);
     await post.save();
 
+    // Populate comment with author info
     const populatedComment = await Comment.findById(comment._id).populate(
       'author',
       'username fullName avatar'
     );
 
-    // Notify post author (if not own post)
+    // Create notification if user is not commenting on their own post
     if (post.author.toString() !== req.user._id.toString()) {
-      const notification = await Notification.create({
+      await Notification.create({
         recipient: post.author,
         sender: req.user._id,
         type: 'comment',
@@ -483,71 +568,261 @@ export const addComment = async (req, res) => {
         comment: comment._id,
         message: `${req.user.username} commented on your post`,
       });
-
-      const populatedNotification = await Notification.findById(notification._id)
-        .populate('sender', 'username fullName avatar');
-
-      // Emit socket event
-      const io = req.app.get('io');
-      io.to(post.author.toString()).emit('notification', populatedNotification);
     }
 
-    // Mentions notifications (notify mentioned users in this comment)
-    const mentions = text ? text.match(/@[a-zA-Z0-9_]+/g) || [] : [];
-    if (mentions.length) {
-      const usernames = [...new Set(mentions.map((m) => m.substring(1)))];
-      const mentionedUsers = await User.find({ username: { $in: usernames } }, '_id');
-      const notifyUsers = mentionedUsers
-        .map((u) => u._id.toString())
-        .filter((uid) => uid !== req.user._id.toString()); // don't notify self
-
-      for (const uid of notifyUsers) {
-        const mentionNotification = await Notification.create({
-          recipient: uid,
-          sender: req.user._id,
-          type: 'mention',
-          post: post._id,
-          comment: comment._id,
-          message: `${req.user.username} mentioned you in a comment`,
-        });
-
-        const populatedMention = await Notification.findById(mentionNotification._id)
-          .populate('sender', 'username fullName avatar');
-
-        const io = req.app.get('io');
-        io.to(uid).emit('notification', populatedMention);
-      }
-    }
-
-    // Emit real-time comment
-    const io = req.app.get('io');
-    io.emit('newComment', {
-      postId: post._id,
-      comment: populatedComment,
+    // Update user's comment count for achievements
+    await User.findByIdAndUpdate(req.user._id, {
+      $inc: { commentsCount: 1 }
     });
+
+    // Check and award achievements for commenting
+    try {
+      await checkAndAwardAchievements(req.user._id, 'commented');
+    } catch (achievementError) {
+      console.error('Error checking achievements:', achievementError);
+    }
 
     res.status(201).json({
       success: true,
-      message: 'Comment added successfully',
+      message: 'Comment added',
       data: populatedComment,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
-// @desc    Get all comments for a post
+// @desc    Delete comment
+// @route   DELETE /api/posts/comment/:id
+// @access  Private
+export const deleteComment = async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.id);
+
+    if (!comment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Comment not found',
+      });
+    }
+
+    // Check if user is the author of the comment
+    if (comment.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this comment',
+      });
+    }
+
+    // Remove comment from post
+    await Post.findByIdAndUpdate(comment.post, {
+      $pull: { comments: comment._id },
+    });
+
+    // Delete the comment
+    await comment.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: 'Comment deleted',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// @desc    Get trending posts
+// @route   GET /api/posts/trending
+// @access  Public
+export const getTrendingPosts = async (req, res) => {
+  try {
+    // Try to get cached data
+    try {
+      const cachedPosts = await redisClient.get('trending:posts');
+      if (cachedPosts) {
+        console.log('✅ Cache hit for trending posts');
+        return res.status(200).json({
+          success: true,
+          data: JSON.parse(cachedPosts),
+          fromCache: true
+        });
+      }
+    } catch (cacheError) {
+      console.error('Cache read error:', cacheError);
+    }
+    
+    // Get posts from last 7 days with high engagement
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    
+    const posts = await Post.find({
+      createdAt: { $gte: oneWeekAgo },
+      isArchived: { $ne: true },
+    })
+      .sort({ likes: -1, comments: -1 })
+      .limit(20)
+      .populate('author', 'username fullName avatar');
+
+    // Cache the trending posts for 5 minutes
+    try {
+      await redisClient.setEx('trending:posts', 300, JSON.stringify(posts));
+    } catch (cacheError) {
+      console.error('Cache write error:', cacheError);
+    }
+
+    res.status(200).json({
+      success: true,
+      data: posts,
+      fromCache: false
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// @desc    Get long videos
+// @route   GET /api/posts/videos/long
+// @access  Public
+export const getLongVideos = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Try to get cached data
+    const cacheKey = `long:videos:${page}:${limit}`;
+    try {
+      const cachedPosts = await redisClient.get(cacheKey);
+      if (cachedPosts) {
+        console.log(`✅ Cache hit for long videos (page: ${page})`);
+        return res.status(200).json({
+          success: true,
+          data: JSON.parse(cachedPosts),
+          fromCache: true
+        });
+      }
+    } catch (cacheError) {
+      console.error('Cache read error:', cacheError);
+    }
+
+    const posts = await Post.find({
+      category: 'long',
+      isArchived: { $ne: true },
+    })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('author', 'username fullName avatar')
+      .populate('audio'); // Populate audio field
+
+    // Cache the long videos for 5 minutes
+    try {
+      await redisClient.setEx(cacheKey, 300, JSON.stringify(posts));
+    } catch (cacheError) {
+      console.error('Cache write error:', cacheError);
+    }
+
+    res.status(200).json({
+      success: true,
+      data: posts,
+      fromCache: false
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// @desc    Get short videos
+// @route   GET /api/posts/videos/short
+// @access  Public
+export const getShortVideos = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Try to get cached data
+    const cacheKey = `short:videos:${page}:${limit}`;
+    try {
+      const cachedPosts = await redisClient.get(cacheKey);
+      if (cachedPosts) {
+        console.log(`✅ Cache hit for short videos (page: ${page})`);
+        return res.status(200).json({
+          success: true,
+          data: JSON.parse(cachedPosts),
+          fromCache: true
+        });
+      }
+    } catch (cacheError) {
+      console.error('Cache read error:', cacheError);
+    }
+
+    const posts = await Post.find({
+      category: 'short',
+      isArchived: { $ne: true },
+    })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('author', 'username fullName avatar')
+      .populate('audio'); // Populate audio field
+
+    // Cache the short videos for 5 minutes
+    try {
+      await redisClient.setEx(cacheKey, 300, JSON.stringify(posts));
+    } catch (cacheError) {
+      console.error('Cache write error:', cacheError);
+    }
+
+    res.status(200).json({
+      success: true,
+      data: posts,
+      fromCache: false
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// @desc    Get post comments
 // @route   GET /api/posts/:id/comments
 // @access  Public
 export const getPostComments = async (req, res) => {
   try {
-    const comments = await Comment.find({ post: req.params.id })
-      .sort({ createdAt: -1 })
-      .populate('author', 'username fullName avatar');
+    const post = await Post.findById(req.params.id)
+      .populate({
+        path: 'comments',
+        populate: {
+          path: 'author',
+          select: 'username fullName avatar',
+        },
+        options: { sort: { createdAt: -1 } },
+      });
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found',
+      });
+    }
 
     res.status(200).json({
       success: true,
-      data: comments,
+      data: post.comments,
     });
   } catch (error) {
     res.status(500).json({
@@ -562,7 +837,6 @@ export const getPostComments = async (req, res) => {
 // @access  Private
 export const savePost = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
     const post = await Post.findById(req.params.id);
 
     if (!post) {
@@ -572,12 +846,17 @@ export const savePost = async (req, res) => {
       });
     }
 
-    const isSaved = user.savedPosts.includes(req.params.id);
+    const user = await User.findById(req.user._id);
+
+    // Check if user already saved the post
+    const isSaved = user.savedPosts.some(
+      (savedPost) => savedPost.toString() === req.params.id
+    );
 
     if (isSaved) {
-      // Unsave
+      // Unsave the post
       user.savedPosts = user.savedPosts.filter(
-        (id) => id.toString() !== req.params.id
+        (savedPost) => savedPost.toString() !== req.params.id
       );
       await user.save();
 
@@ -587,7 +866,7 @@ export const savePost = async (req, res) => {
         isSaved: false,
       });
     } else {
-      // Save
+      // Save the post
       user.savedPosts.push(req.params.id);
       await user.save();
 
@@ -617,6 +896,11 @@ export const getSavedPosts = async (req, res) => {
         select: 'username fullName avatar',
       },
       options: { sort: { createdAt: -1 } },
+    }).populate({
+      path: 'savedPosts',
+      populate: {
+        path: 'audio',
+      },
     });
 
     res.status(200).json({
@@ -645,10 +929,11 @@ export const archivePost = async (req, res) => {
       });
     }
 
+    // Check if user is the author
     if (post.author.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Not authorized',
+        message: 'Not authorized to archive this post',
       });
     }
 
@@ -668,38 +953,44 @@ export const archivePost = async (req, res) => {
   }
 };
 
-// @desc    Delete comment
-// @route   DELETE /api/posts/:postId/comments/:commentId
-// @access  Private
-export const deleteComment = async (req, res) => {
+// @desc    Increment post view count
+// @route   POST /api/posts/:id/view
+// @access  Public
+export const incrementViewCount = async (req, res) => {
   try {
-    const comment = await Comment.findById(req.params.commentId);
+    const post = await Post.findById(req.params.id);
 
-    if (!comment) {
+    if (!post) {
       return res.status(404).json({
         success: false,
-        message: 'Comment not found',
+        message: 'Post not found',
       });
     }
 
-    // Check if user is the author
-    if (comment.author.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to delete this comment',
+    // Increment view count
+    post.views = (post.views || 0) + 1;
+    await post.save();
+
+    // Update user's view count for achievements (if user is logged in)
+    if (req.user && req.user._id) {
+      await User.findByIdAndUpdate(req.user._id, {
+        $inc: { viewsCount: 1 }
       });
+
+      // Check and award achievements for viewing
+      try {
+        await checkAndAwardAchievements(req.user._id, 'video_watched');
+      } catch (achievementError) {
+        console.error('Error checking achievements:', achievementError);
+      }
     }
-
-    // Remove comment from post
-    await Post.findByIdAndUpdate(req.params.postId, {
-      $pull: { comments: comment._id },
-    });
-
-    await comment.deleteOne();
 
     res.status(200).json({
       success: true,
-      message: 'Comment deleted successfully',
+      message: 'View count incremented',
+      data: {
+        views: post.views
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -709,100 +1000,657 @@ export const deleteComment = async (req, res) => {
   }
 };
 
-// Reply to a comment (nested threads)
+// @desc    Reply to comment
+// @route   POST /api/posts/:postId/comments/:commentId/reply
+// @access  Private
 export const replyToComment = async (req, res) => {
   try {
     const { text } = req.body;
+    const { postId, commentId } = req.params;
 
     if (!text || text.trim() === '') {
-      return res.status(400).json({ success: false, message: 'Comment text is required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Reply text is required',
+      });
     }
 
-    const post = await Post.findById(req.params.postId);
+    const post = await Post.findById(postId);
+    const parentComment = await Comment.findById(commentId);
+
     if (!post) {
-      return res.status(404).json({ success: false, message: 'Post not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found',
+      });
     }
 
-    const parent = await Comment.findById(req.params.commentId);
-    if (!parent || parent.post.toString() !== post._id.toString()) {
-      return res.status(400).json({ success: false, message: 'Invalid parent comment' });
+    if (!parentComment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Comment not found',
+      });
     }
 
-    const comment = await Comment.create({
-      post: post._id,
+    const reply = await Comment.create({
+      text: text.trim(),
       author: req.user._id,
-      text,
-      parentComment: parent._id,
+      post: postId,
+      parentComment: commentId,
     });
 
-    // Add reply to post comments array (flat storage; UI will thread via parentComment)
-    post.comments.push(comment._id);
+    // Add reply to post comments
+    post.comments.push(reply._id);
     await post.save();
 
-    const populatedComment = await Comment.findById(comment._id).populate('author', 'username fullName avatar');
+    // Populate reply with author info
+    const populatedReply = await Comment.findById(reply._id).populate(
+      'author',
+      'username fullName avatar'
+    );
 
-    // Emit real-time comment
-    const io = req.app.get('io');
-    io.emit('newComment', { postId: post._id, comment: populatedComment });
+    // Create notification for parent comment author (if not replying to own comment)
+    if (parentComment.author.toString() !== req.user._id.toString()) {
+      await Notification.create({
+        user: parentComment.author,
+        sender: req.user._id,
+        type: 'reply',
+        post: postId,
+        comment: reply._id,
+      });
+    }
 
-    res.status(201).json({ success: true, message: 'Reply added successfully', data: populatedComment });
+    res.status(201).json({
+      success: true,
+      message: 'Reply added',
+      data: populatedReply,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
-// Pin a comment on a post (author only)
+// @desc    Pin comment to post
+// @route   POST /api/posts/:postId/pin/:commentId
+// @access  Private
 export const pinComment = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.postId);
+    const { postId, commentId } = req.params;
+
+    const post = await Post.findById(postId);
+    const comment = await Comment.findById(commentId);
+
     if (!post) {
-      return res.status(404).json({ success: false, message: 'Post not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found',
+      });
     }
 
+    if (!comment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Comment not found',
+      });
+    }
+
+    // Check if user is the author of the post
     if (post.author.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Not authorized to pin comments' });
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to pin comment on this post',
+      });
     }
 
-    const comment = await Comment.findById(req.params.commentId);
-    if (!comment || comment.post.toString() !== post._id.toString()) {
-      return res.status(400).json({ success: false, message: 'Invalid comment for this post' });
-    }
-
-    post.pinnedComment = comment._id;
+    post.pinnedComment = commentId;
     await post.save();
 
-    const populatedPinned = await Comment.findById(comment._id).populate('author', 'username fullName avatar');
+    // Populate comment with author info
+    const populatedComment = await Comment.findById(commentId).populate(
+      'author',
+      'username fullName avatar'
+    );
 
-    // Emit real-time pin update
-    const io = req.app.get('io');
-    io.emit('commentPinned', { postId: post._id, comment: populatedPinned });
-
-    res.status(200).json({ success: true, message: 'Comment pinned', data: populatedPinned });
+    res.status(200).json({
+      success: true,
+      message: 'Comment pinned',
+      data: populatedComment,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
-// Unpin comment
+// @desc    Unpin comment from post
+// @route   POST /api/posts/:postId/unpin
+// @access  Private
 export const unpinComment = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.postId);
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId);
+
     if (!post) {
-      return res.status(404).json({ success: false, message: 'Post not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found',
+      });
     }
 
+    // Check if user is the author of the post
     if (post.author.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Not authorized to unpin comments' });
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to unpin comment from this post',
+      });
     }
 
     post.pinnedComment = null;
     await post.save();
 
-    const io = req.app.get('io');
-    io.emit('commentPinned', { postId: post._id, comment: null });
-
-    res.status(200).json({ success: true, message: 'Comment unpinned' });
+    res.status(200).json({
+      success: true,
+      message: 'Comment unpinned',
+    });
   } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Export the commentOnPost function as addComment to match the import
+export const addComment = commentOnPost;
+
+// @desc    Add chapters to a post
+// @route   POST /api/posts/:id/chapters
+// @access  Private
+export const addChapters = async (req, res) => {
+  try {
+    const { id: postId } = req.params;
+    const { chapters } = req.body;
+    const userId = req.user._id;
+
+    // Validate chapters data
+    if (!chapters || !Array.isArray(chapters) || chapters.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Chapters data is required and must be a non-empty array',
+      });
+    }
+
+    // Validate each chapter
+    const processedChapters = chapters.map(chapter => ({
+      timestamp: Number(chapter.timestamp),
+      title: String(chapter.title).trim()
+    })).filter(chapter => 
+      !isNaN(chapter.timestamp) && 
+      chapter.timestamp >= 0 && 
+      chapter.title && 
+      chapter.title.length > 0 && 
+      chapter.title.length <= 100
+    );
+
+    if (processedChapters.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid chapters provided',
+      });
+    }
+
+    // Find the post
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found',
+      });
+    }
+
+    // Check if user is the author of the post
+    if (post.author.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to add chapters to this post',
+      });
+    }
+
+    // Update post with chapters
+    post.chapters = processedChapters;
+    await post.save();
+
+    // Populate author details
+    await post.populate('author', 'username fullName avatar isVerified isCreator');
+
+    res.status(200).json({
+      success: true,
+      message: 'Chapters added successfully',
+      data: post,
+    });
+  } catch (error) {
+    console.error('❌ Add chapters error:', error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Update chapters for a post
+// @route   PUT /api/posts/:id/chapters
+// @access  Private
+export const updateChapters = async (req, res) => {
+  try {
+    const { id: postId } = req.params;
+    const { chapters } = req.body;
+    const userId = req.user._id;
+
+    // Validate chapters data
+    if (!chapters || !Array.isArray(chapters)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Chapters data is required and must be an array',
+      });
+    }
+
+    // Validate each chapter (if chapters array is not empty)
+    let processedChapters = [];
+    if (chapters.length > 0) {
+      processedChapters = chapters.map(chapter => ({
+        timestamp: Number(chapter.timestamp),
+        title: String(chapter.title).trim()
+      })).filter(chapter => 
+        !isNaN(chapter.timestamp) && 
+        chapter.timestamp >= 0 && 
+        chapter.title && 
+        chapter.title.length > 0 && 
+        chapter.title.length <= 100
+      );
+
+      if (processedChapters.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No valid chapters provided',
+        });
+      }
+    }
+
+    // Find the post
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found',
+      });
+    }
+
+    // Check if user is the author of the post
+    if (post.author.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update chapters for this post',
+      });
+    }
+
+    // Update post with chapters
+    post.chapters = processedChapters;
+    await post.save();
+
+    // Populate author details
+    await post.populate('author', 'username fullName avatar isVerified isCreator');
+
+    res.status(200).json({
+      success: true,
+      message: 'Chapters updated successfully',
+      data: post,
+    });
+  } catch (error) {
+    console.error('❌ Update chapters error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Delete chapters from a post
+// @route   DELETE /api/posts/:id/chapters
+// @access  Private
+export const deleteChapters = async (req, res) => {
+  try {
+    const { id: postId } = req.params;
+    const userId = req.user._id;
+
+    // Find the post
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found',
+      });
+    }
+
+    // Check if user is the author of the post
+    if (post.author.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete chapters from this post',
+      });
+    }
+
+    // Remove chapters from post
+    post.chapters = [];
+    await post.save();
+
+    // Populate author details
+    await post.populate('author', 'username fullName avatar isVerified isCreator');
+
+    res.status(200).json({
+      success: true,
+      message: 'Chapters deleted successfully',
+      data: post,
+    });
+  } catch (error) {
+    console.error('❌ Delete chapters error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Update video editing features (trimming, playback rate)
+// @route   PUT /api/posts/:id/video-editing
+// @access  Private
+export const updateVideoEditing = async (req, res) => {
+  try {
+    const { id: postId } = req.params;
+    const { videoStartSec, videoEndSec, playbackRate } = req.body;
+    const userId = req.user._id;
+
+    // Find the post
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found',
+      });
+    }
+
+    // Check if user is the author of the post
+    if (post.author.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update video editing features for this post',
+      });
+    }
+
+    // Validate and update video editing features
+    if (typeof videoStartSec !== 'undefined') {
+      const startSec = Number(videoStartSec);
+      if (isNaN(startSec) || startSec < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid video start time',
+        });
+      }
+      post.videoStartSec = startSec;
+    }
+
+    if (typeof videoEndSec !== 'undefined') {
+      const endSec = Number(videoEndSec);
+      if (isNaN(endSec) || endSec < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid video end time',
+        });
+      }
+      post.videoEndSec = endSec;
+    }
+
+    if (typeof playbackRate !== 'undefined') {
+      const rate = Number(playbackRate);
+      if (isNaN(rate) || rate <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid playback rate',
+        });
+      }
+      post.playbackRate = rate;
+    }
+
+    await post.save();
+
+    // Populate author details
+    await post.populate('author', 'username fullName avatar isVerified isCreator');
+
+    res.status(200).json({
+      success: true,
+      message: 'Video editing features updated successfully',
+      data: post,
+    });
+  } catch (error) {
+    console.error('❌ Update video editing error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Reset video editing features
+// @route   DELETE /api/posts/:id/video-editing
+// @access  Private
+export const resetVideoEditing = async (req, res) => {
+  try {
+    const { id: postId } = req.params;
+    const userId = req.user._id;
+
+    // Find the post
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found',
+      });
+    }
+
+    // Check if user is the author of the post
+    if (post.author.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to reset video editing features for this post',
+      });
+    }
+
+    // Reset video editing features
+    post.videoStartSec = undefined;
+    post.videoEndSec = undefined;
+    post.playbackRate = undefined;
+
+    await post.save();
+
+    // Populate author details
+    await post.populate('author', 'username fullName avatar isVerified isCreator');
+
+    res.status(200).json({
+      success: true,
+      message: 'Video editing features reset successfully',
+      data: post,
+    });
+  } catch (error) {
+    console.error('❌ Reset video editing error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Update age restrictions and content warnings
+// @route   PUT /api/posts/:id/restrictions
+// @access  Private
+export const updatePostRestrictions = async (req, res) => {
+  try {
+    const { id: postId } = req.params;
+    const { ageRestricted, contentWarnings, customWarning } = req.body;
+    const userId = req.user._id;
+
+    // Find the post
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found',
+      });
+    }
+
+    // Check if user is the author of the post
+    if (post.author.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update restrictions for this post',
+      });
+    }
+
+    // Update restrictions
+    if (typeof ageRestricted !== 'undefined') {
+      post.ageRestricted = ageRestricted === 'true' || ageRestricted === true;
+    }
+
+    if (contentWarnings) {
+      post.contentWarnings = Array.isArray(contentWarnings) ? contentWarnings : [];
+    }
+
+    if (customWarning) {
+      post.customWarning = String(customWarning).substring(0, 200);
+    }
+
+    await post.save();
+
+    // Populate author details
+    await post.populate('author', 'username fullName avatar isVerified isCreator');
+
+    res.status(200).json({
+      success: true,
+      message: 'Post restrictions updated successfully',
+      data: post,
+    });
+  } catch (error) {
+    console.error('❌ Update post restrictions error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Share post
+// @route   POST /api/posts/:id/share
+// @access  Private
+export const sharePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found',
+      });
+    }
+
+    // Update user's share count for achievements
+    await User.findByIdAndUpdate(req.user._id, {
+      $inc: { sharesCount: 1 }
+    });
+
+    // Check and award achievements for sharing
+    try {
+      await checkAndAwardAchievements(req.user._id, 'shared');
+    } catch (achievementError) {
+      console.error('Error checking achievements:', achievementError);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Post shared successfully',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// @desc    Search posts
+// @route   GET /api/posts/search
+// @access  Public
+export const searchPosts = async (req, res) => {
+  try {
+    const { q, page = 1, limit = 20 } = req.query;
+    
+    if (!q) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query is required',
+      });
+    }
+    
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+    
+    // Try to get cached data
+    try {
+      const cachedResults = await redisClient.get(`search:posts:${q}:page:${pageNum}:limit:${limitNum}`);
+      if (cachedResults) {
+        console.log(`✅ Cache hit for post search: ${q}, page: ${pageNum}`);
+        return res.status(200).json({
+          success: true,
+          data: JSON.parse(cachedResults),
+          fromCache: true,
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            hasMore: true // This would need to be calculated properly in a real implementation
+          }
+        });
+      }
+    } catch (cacheError) {
+      console.error('Cache read error:', cacheError);
+    }
+    
+    const posts = await Post.find({
+      $or: [
+        { caption: { $regex: q, $options: 'i' } },
+        { title: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } },
+        { tags: { $in: [new RegExp(q, 'i')] } }
+      ],
+      category: { $in: ['image', 'short', 'long'] }
+    })
+      .populate('author', 'username fullName avatar')
+      .populate('audio') // Populate audio field
+      .skip(skip)
+      .limit(limitNum);
+    
+    // Cache the search results for 2 minutes
+    try {
+      await redisClient.setEx(`search:posts:${q}:page:${pageNum}:limit:${limitNum}`, 120, JSON.stringify(posts));
+    } catch (cacheError) {
+      console.error('Cache write error:', cacheError);
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: posts,
+      fromCache: false,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        hasMore: posts.length === limitNum
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };

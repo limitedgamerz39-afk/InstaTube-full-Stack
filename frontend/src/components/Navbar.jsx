@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useVideo } from '../context/VideoContext';
+import { useUserSuggestions } from '../services/queryClient';
 import {
   AiOutlineHome,
   AiFillHome,
@@ -11,23 +13,187 @@ import {
   AiFillHeart,
   AiOutlineMessage,
   AiFillMessage,
+  AiOutlineMenu,
+  AiOutlineUserAdd,
+  AiOutlineBook,
+  AiOutlineCompass,
+  AiOutlinePlaySquare,
+  AiOutlineGroup,
+  AiOutlineSetting,
+  AiOutlineLogout,
+  AiOutlineUser,
+  AiOutlineCheckCircle
 } from 'react-icons/ai';
-import { BsSun, BsMoon, BsCompass, BsFilm } from 'react-icons/bs';
-import { FiShield, FiLogOut, FiSettings, FiBookmark, FiUser } from 'react-icons/fi';
+import { 
+  BsSun, 
+  BsMoon, 
+  BsCompass, 
+  BsFilm, 
+  BsCameraReelsFill,
+  BsBookmark,
+  BsHeart,
+  BsClock,
+  BsPlayBtn,
+  BsPeople,
+  BsGrid3X2Gap
+} from 'react-icons/bs';
+import { FiShield, FiLogOut, FiSettings, FiBookmark, FiUser, FiX } from 'react-icons/fi';
+import { IoMdClose, IoMdHome, IoMdSearch } from 'react-icons/io';
 import { notificationAPI, messageAPI } from '../services/api';
 import socketService from '../services/socket';
+import OptimizedImage from './OptimizedImage';
+import ThemeSwitcher from './ThemeSwitcher';
 
-const Navbar = () => {
+export default function Navbar({ setMobileSidebarOpen }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
+  const { isVideoPlaying } = useVideo();
+  const { data: suggestionsData } = useUserSuggestions();
+  const suggestions = suggestionsData?.data?.data || [];
   const navigate = useNavigate();
   const location = useLocation();
-  const showSearch = !location.pathname.startsWith('/messages');
+  const showSearch = !location.pathname.startsWith('/messages') && location.pathname !== '/search';
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
   const [incomingCall, setIncomingCall] = useState(null);
+  const [isVisible, setIsVisible] = useState(true);
+  const prevScrollPos = useRef(window.scrollY);
+  const userMenuRef = useRef(null);
+  
+  // Handle click outside to close user menu
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Handle scroll to hide/show navbar
+  useEffect(() => {
+    const handleScroll = () => {
+      // If a video is playing, keep navbar visible
+      if (isVideoPlaying) {
+        setIsVisible(true);
+        return;
+      }
+      
+      const currentScrollPos = window.scrollY;
+      const isScrollingDown = currentScrollPos > prevScrollPos.current;
+      
+      // Only hide when scrolling down and past a certain threshold
+      if (currentScrollPos > 100) {
+        setIsVisible(!isScrollingDown);
+      } else {
+        // Always show navbar when near top of page
+        setIsVisible(true);
+      }
+      
+      prevScrollPos.current = currentScrollPos;
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isVideoPlaying]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Only trigger if not in an input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      
+      // Alt key combinations for navigation
+      if (e.altKey) {
+        switch (e.key.toLowerCase()) {
+          case 'h':
+            e.preventDefault();
+            navigate('/');
+            break;
+          case 'e':
+            e.preventDefault();
+            navigate('/explore');
+            break;
+          case 'r':
+            e.preventDefault();
+            navigate('/reels');
+            break;
+          case 's':
+            e.preventDefault();
+            if (showSearch) {
+              navigate('/search');
+            }
+            break;
+          case 'n':
+            e.preventDefault();
+            navigate('/upload');
+            break;
+          case 'm':
+            e.preventDefault();
+            navigate('/messages');
+            break;
+          case 'p':
+            e.preventDefault();
+            navigate(`/profile/${user?.username}`);
+            break;
+          case 'g':
+            e.preventDefault();
+            navigate('/groups');
+            break;
+          default:
+            break;
+        }
+      }
+      
+      // Escape key to close user menu
+      if (e.key === 'Escape') {
+        setShowUserMenu(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate, showSearch, user?.username]);
+
+  const fetchUnreadCount = useCallback(async () => {
+    // Debounce notification fetches to prevent rate limiting
+    const now = Date.now();
+    const lastFetch = localStorage.getItem('lastNotificationFetch');
+    
+    // Only fetch if it's been more than 30 seconds since last fetch
+    if (!lastFetch || now - parseInt(lastFetch) > 30000) {
+      try {
+        const response = await notificationAPI.getNotifications();
+        setUnreadCount(response.data.unreadCount);
+        localStorage.setItem('lastNotificationFetch', now.toString());
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    }
+  }, []);
+
+  const fetchMessageCount = useCallback(async () => {
+    // Debounce message count fetches to prevent rate limiting
+    const now = Date.now();
+    const lastFetch = localStorage.getItem('lastMessageCountFetch');
+    
+    // Only fetch if it's been more than 30 seconds since last fetch
+    if (!lastFetch || now - parseInt(lastFetch) > 30000) {
+      try {
+        const response = await messageAPI.getUnreadCount();
+        setMessageCount(response.data.data.count);
+        localStorage.setItem('lastMessageCountFetch', now.toString());
+      } catch (error) {
+        console.error('Error fetching message count:', error);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     fetchUnreadCount();
@@ -48,9 +214,14 @@ const Navbar = () => {
       setMessageCount(0);
     };
 
+    const handleNotificationsViewed = () => {
+      setUnreadCount(0);
+    };
+
     socketService.on('notification', handleNotification);
     socketService.on('newMessage', handleNewMessage);
     window.addEventListener('messagesViewed', handleMessagesViewed);
+    window.addEventListener('notificationsViewed', handleNotificationsViewed);
 
     const handleCallInvite = (payload) => {
       setIncomingCall(payload);
@@ -65,36 +236,11 @@ const Navbar = () => {
       socketService.off('notification', handleNotification);
       socketService.off('newMessage', handleNewMessage);
       window.removeEventListener('messagesViewed', handleMessagesViewed);
+      window.removeEventListener('notificationsViewed', handleNotificationsViewed);
       socketService.off('call:invite', handleCallInvite);
       socketService.off('call:decline', handleCallDecline);
     };
-  }, []);
-
-  const fetchUnreadCount = async () => {
-    try {
-      const response = await notificationAPI.getNotifications();
-      setUnreadCount(response.data.unreadCount);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    }
-  };
-
-  const fetchMessageCount = async () => {
-    try {
-      const response = await messageAPI.getUnreadCount();
-      setMessageCount(response.data.data.count);
-    } catch (error) {
-      console.error('Error fetching message count:', error);
-    }
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${searchQuery}`);
-      setSearchQuery('');
-    }
-  };
+  }, [fetchUnreadCount, fetchMessageCount]);
 
   const handleLogout = () => {
     logout();
@@ -103,264 +249,398 @@ const Navbar = () => {
 
   const isActive = (path) => location.pathname === path;
 
+  // Close dropdown when navigating to a new page
+  useEffect(() => {
+    setShowUserMenu(false);
+  }, [location.pathname]);
+
+  // Menu items for the user dropdown
+  const menuItems = [
+    { icon: AiOutlineHome, label: 'Home', path: '/' },
+    { icon: AiOutlineCompass, label: 'Explore', path: '/explore' },
+    { icon: BsFilm, label: 'Reels', path: '/reels' },
+    { icon: AiOutlinePlaySquare, label: 'Long Videos', path: '/long-videos' },
+    { icon: AiOutlineGroup, label: 'Groups', path: '/groups' },
+    { divider: true },
+    { icon: AiOutlineUser, label: 'Subscriptions', path: '/subscriptions' },
+    { icon: BsBookmark, label: 'Library', path: '/library' },
+    { icon: BsClock, label: 'History', path: '/history' },
+    { icon: BsClock, label: 'Watch Later', path: '/watch-later' },
+    { icon: BsHeart, label: 'Liked Videos', path: '/liked-videos' },
+    { divider: true },
+    { icon: AiOutlineSetting, label: 'Settings', path: '/settings' },
+    { icon: FiShield, label: 'Admin Panel', path: '/admin', adminOnly: true },
+    { icon: AiOutlineLogout, label: 'Logout', action: handleLogout }
+  ];
+
   return (
-    <nav className="bg-white/90 dark:bg-dark-bg/90 border-b border-gray-200/50 dark:border-dark-border/50 sticky top-0 z-50 backdrop-blur-2xl shadow-lg">
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+    <>
+      {/* Desktop Navbar */}
+      <nav className="hidden md:flex items-center justify-between px-4 py-3 bg-white dark:bg-dark-bg shadow-sm sticky top-0 z-50">
+        <div className="flex items-center space-x-6 lg:space-x-10">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-sunset rounded-2xl blur-lg opacity-70 group-hover:opacity-100 transition-opacity"></div>
-              <div className="relative bg-gradient-sunset p-2.5 rounded-2xl shadow-glow">
-                <span className="text-2xl font-black text-white">IT</span>
-              </div>
+          <Link to="/" className="flex items-center space-x-2 flex-shrink-0" aria-label="D4D HUB home">
+            <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-2 rounded-xl">
+              <BsCameraReelsFill className="text-white w-6 h-6" />
             </div>
-            <span className="text-2xl font-black gradient-text hidden md:block">InstaTube</span>
+            <span className="text-lg font-black gradient-text hidden lg:block">D4D HUB</span>
           </Link>
-
-          {/* Search Bar - Desktop */}
-          {showSearch && (
-            <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-md mx-8">
-              <div className="relative">
-                <AiOutlineSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search InstaTube..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-100 dark:bg-dark-card/80 text-gray-900 dark:text-white border-2 border-transparent rounded-2xl focus:outline-none focus:border-primary-400 focus:bg-white dark:focus:bg-dark-card-hover focus:ring-4 focus:ring-primary-100 dark:focus:ring-primary-900/30 transition-all duration-200 placeholder:text-gray-400"
-                />
-              </div>
-            </form>
-          )}
-
-          {/* Navigation Icons - Desktop */}
-          <div className="hidden md:flex items-center gap-2">
-            {/* Home */}
-            <Link 
-              to="/" 
-              className={`p-3 rounded-xl transition-all duration-200 ${
-                isActive('/') 
-                  ? 'bg-gradient-primary text-white shadow-glow-primary' 
-                  : 'hover:bg-gray-100 dark:hover:bg-dark-card text-gray-600 dark:text-gray-400 hover:scale-110'
-              }`}
-            >
-              {isActive('/') ? <AiFillHome size={24} /> : <AiOutlineHome size={24} />}
-            </Link>
-
-            {/* Explore */}
-            <Link 
-              to="/explore" 
-              className={`p-3 rounded-xl transition-all duration-200 ${
-                isActive('/explore') 
-                  ? 'bg-gradient-secondary text-white shadow-glow-secondary' 
-                  : 'hover:bg-gray-100 dark:hover:bg-dark-card text-gray-600 dark:text-gray-400 hover:scale-110'
-              }`}
-            >
-              <BsCompass size={22} />
-            </Link>
-
-            {/* Reels */}
-            <Link 
-              to="/reels" 
-              className={`p-3 rounded-xl transition-all duration-200 ${
-                isActive('/reels') 
-                  ? 'bg-gradient-sunset text-white shadow-glow' 
-                  : 'hover:bg-gray-100 dark:hover:bg-dark-card text-gray-600 dark:text-gray-400 hover:scale-110'
-              }`}
-            >
-              <BsFilm size={22} />
-            </Link>
-
-            {/* Messages */}
-            <Link 
-              to="/messages" 
-              className={`p-3 rounded-xl transition-all duration-200 relative ${
-                isActive('/messages') 
-                  ? 'bg-gradient-ocean text-white shadow-glow-accent' 
-                  : 'hover:bg-gray-100 dark:hover:bg-dark-card text-gray-600 dark:text-gray-400 hover:scale-110'
-              }`}
-            >
-              {isActive('/messages') ? <AiFillMessage size={24} /> : <AiOutlineMessage size={24} />}
-              {messageCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-info-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center font-bold shadow-lg border-2 border-white dark:border-dark-bg animate-pulse-slow">
-                  {messageCount > 9 ? '9+' : messageCount}
-                </span>
-              )}
-            </Link>
-
-            {/* Upload */}
-            <Link 
-              to="/upload" 
-              className="p-3 rounded-xl bg-gradient-primary hover:bg-gradient-sunset text-white shadow-glow-primary hover:shadow-glow transition-all duration-200 hover:scale-110"
-            >
-              <AiOutlinePlusSquare size={24} />
-            </Link>
-
-            {/* Notifications */}
-            <Link 
-              to="/notifications" 
-              className={`p-3 rounded-xl transition-all duration-200 relative ${
-                isActive('/notifications') 
-                  ? 'bg-gradient-to-r from-danger-400 to-danger-600 text-white shadow-glow' 
-                  : 'hover:bg-gray-100 dark:hover:bg-dark-card text-gray-600 dark:text-gray-400 hover:scale-110'
-              }`}
-            >
-              {isActive('/notifications') ? <AiFillHeart size={24} /> : <AiOutlineHeart size={24} />}
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-danger-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center font-bold shadow-lg border-2 border-white dark:border-dark-bg animate-pulse-slow">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </Link>
-
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-card text-gray-600 dark:text-gray-400 transition-all duration-200 hover:scale-110"
-              aria-label="Toggle theme"
-            >
-              {isDark ? <BsSun size={22} className="text-warning-400" /> : <BsMoon size={22} />}
-            </button>
-
-            {/* User Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="focus:outline-none group"
-              >
-                <div className="relative">
-                  <img
-                    src={user?.avatar}
-                    alt={user?.username}
-                    className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-200 dark:ring-dark-border group-hover:ring-primary-400 transition-all duration-200"
-                  />
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-success-500 rounded-full border-2 border-white dark:border-dark-bg"></div>
-                </div>
-              </button>
-
-              {showUserMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)}></div>
-                  <div className="absolute right-0 mt-3 w-64 card p-2 z-50 animate-scale-in">
-                    <div className="px-4 py-3 border-b border-gray-200 dark:border-dark-border">
-                      <p className="font-bold text-gray-900 dark:text-white">{user?.fullName}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">@{user?.username}</p>
-                    </div>
-                    
-                    <div className="py-2 space-y-1">
-                      <Link
-                        to={`/profile/${user?.username}`}
-                        className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-card-hover text-gray-700 dark:text-gray-300 transition-colors"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <FiUser className="w-5 h-5" />
-                        <span className="font-medium">Profile</span>
-                      </Link>
-                      <Link
-                        to="/saved"
-                        className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-card-hover text-gray-700 dark:text-gray-300 transition-colors"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <FiBookmark className="w-5 h-5" />
-                        <span className="font-medium">Saved</span>
-                      </Link>
-                      <Link
-                        to="/settings"
-                        className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-card-hover text-gray-700 dark:text-gray-300 transition-colors"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <FiSettings className="w-5 h-5" />
-                        <span className="font-medium">Settings</span>
-                      </Link>
-                      
-                      {user?.role === 'admin' && (
-                        <>
-                          <div className="my-2 border-t border-gray-200 dark:border-dark-border"></div>
-                          <Link
-                            to="/admin"
-                            className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary-50 to-accent-50 dark:from-primary-900/20 dark:to-accent-900/20 hover:from-primary-100 hover:to-accent-100 dark:hover:from-primary-900/30 dark:hover:to-accent-900/30 transition-all"
-                            onClick={() => setShowUserMenu(false)}
-                          >
-                            <FiShield className="w-5 h-5 text-primary-500" />
-                            <span className="font-bold gradient-text">Admin Panel</span>
-                          </Link>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="pt-2 mt-2 border-t border-gray-200 dark:border-dark-border">
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl hover:bg-danger-50 dark:hover:bg-danger-900/20 text-danger-500 transition-colors"
-                      >
-                        <FiLogOut className="w-5 h-5" />
-                        <span className="font-medium">Logout</span>
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
         </div>
 
-        {/* Search Bar - Mobile */}
+        {/* Search Bar - Desktop */}
         {showSearch && (
-          <form onSubmit={handleSearch} className="md:hidden pb-4">
+          <div className="hidden md:block flex-1 max-w-xs lg:max-w-md mx-4">
             <div className="relative">
-              <AiOutlineSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <AiOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 lg:w-5 lg:h-5" />
               <input
                 type="text"
-                placeholder="Search InstaTube..."
+                placeholder="Search D4D HUB..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-gray-100 dark:bg-dark-card text-gray-900 dark:text-white border-2 border-transparent rounded-2xl focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-100 dark:focus:ring-primary-900/30 transition-all duration-200 placeholder:text-gray-400"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (searchQuery.trim()) {
+                      navigate(`/search?q=${searchQuery}`);
+                    }
+                  }
+                }}
+                className="w-full pl-10 pr-4 py-2 lg:py-3 bg-gray-100 dark:bg-dark-card/80 text-gray-900 dark:text-white border-2 border-transparent rounded-2xl focus:outline-none focus:border-primary-400 focus:bg-white dark:focus:bg-dark-card-hover focus:ring-4 focus:ring-primary-100 dark:focus:ring-primary-900/30 transition-all duration-200 placeholder:text-gray-400 text-sm lg:text-base"
+                aria-label="Search D4D HUB"
               />
             </div>
-          </form>
+          </div>
         )}
-      </div>
 
-      {/* Incoming Call Modal */}
-      {incomingCall && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="card max-w-sm w-full p-6 space-y-4 animate-scale-in">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-sunset rounded-full flex items-center justify-center mx-auto mb-4 animate-glow-pulse">
-                <span className="text-3xl">📞</span>
+        {/* Right Side Icons */}
+        <div className="flex items-center space-x-2 lg:space-x-4">
+          {/* Messages */}
+          <Link 
+            to="/messages" 
+            className={`p-2 lg:p-3 rounded-xl transition-all duration-200 relative ${
+              isActive('/messages') 
+                ? 'bg-gradient-info text-white shadow-glow-info' 
+                : 'hover:bg-gray-100 dark:hover:bg-dark-card text-gray-600 dark:text-gray-400 hover:scale-110'
+            }`}
+            title="Messages (Alt+M)"
+            aria-label={`Messages${messageCount > 0 ? `, ${messageCount} unread` : ''}`}
+          >
+            {messageCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 lg:h-5 lg:w-5 flex items-center justify-center" aria-label={`${messageCount} unread messages`}>
+                {messageCount > 9 ? '9+' : messageCount}
+              </span>
+            )}
+            {isActive('/messages') ? <AiFillMessage size={20} className="lg:w-6 lg:h-6" /> : <AiOutlineMessage size={20} className="lg:w-6 lg:h-6" />}
+          </Link>
+
+          {/* Create Post */}
+          <Link 
+            to="/upload" 
+            className="p-2 lg:p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-card text-gray-600 dark:text-gray-400 hover:scale-110 transition-all duration-200"
+            title="Create Post (Alt+N)"
+            aria-label="Create Post"
+          >
+            <AiOutlinePlusSquare size={20} className="lg:w-6 lg:h-6" />
+          </Link>
+
+          {/* Notifications */}
+          <Link 
+            to="/notifications" 
+            className={`p-2 lg:p-3 rounded-xl transition-all duration-200 relative ${
+              isActive('/notifications') 
+                ? 'bg-gradient-warning text-white shadow-glow-warning' 
+                : 'hover:bg-gray-100 dark:hover:bg-dark-card text-gray-600 dark:text-gray-400 hover:scale-110'
+            }`}
+            title="Notifications"
+            aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+          >
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 lg:h-5 lg:w-5 flex items-center justify-center" aria-label={`${unreadCount} unread notifications`}>
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+            {isActive('/notifications') ? <AiFillHeart size={20} className="lg:w-6 lg:h-6" /> : <AiOutlineHeart size={20} className="lg:w-6 lg:h-6" />}
+          </Link>
+
+          {/* Theme Switcher */}
+          <ThemeSwitcher />
+
+          {/* User Profile */}
+          <div className="relative" ref={userMenuRef}>
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 rounded-full overflow-hidden hover:scale-110 transition-transform duration-200"
+              title="Profile (Alt+P)"
+              aria-label="User profile menu"
+              aria-expanded={showUserMenu}
+              aria-haspopup="true"
+            >
+              <OptimizedImage
+                src={user?.avatar || '/default-avatar.png'}
+                alt={user?.username}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user?.username || 'U') + '&background=random&size=200';
+                }}
+              />
+            </button>
+
+            {/* User Menu Dropdown */}
+            {showUserMenu && (
+              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 animate-fadeIn">
+                {/* User Profile Header */}
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center space-x-3">
+                    <OptimizedImage
+                      src={user?.avatar || '/default-avatar.png'}
+                      alt={user?.username}
+                      className="w-12 h-12 rounded-full object-cover"
+                      onError={(e) => {
+                        e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user?.username || 'U') + '&background=random&size=200';
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 dark:text-white truncate">
+                        {user?.fullName || user?.username}
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        @{user?.username}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Menu Items */}
+                <div className="py-2 max-h-96 overflow-y-auto">
+                  {menuItems.map((item, index) => {
+                    // Skip admin items if user is not admin
+                    if (item.adminOnly && user?.role !== 'admin') return null;
+                    
+                    if (item.divider) {
+                      return <div key={index} className="border-t border-gray-200 dark:border-gray-700 my-2"></div>;
+                    }
+                    
+                    if (item.action) {
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            item.action();
+                            setShowUserMenu(false);
+                          }}
+                          className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
+                        >
+                          <item.icon className="w-5 h-5" />
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    }
+                    
+                    return (
+                      <Link
+                        key={index}
+                        to={item.path}
+                        onClick={() => setShowUserMenu(false)}
+                        className={`flex items-center space-x-3 px-4 py-3 text-left transition-colors ${
+                          isActive(item.path)
+                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        <item.icon className="w-5 h-5" />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                {/* Subscriptions Section */}
+                <div className="border-t border-gray-200 dark:border-gray-700 py-2">
+                  <h3 className="px-4 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400">SUBSCRIPTIONS</h3>
+                  {suggestions.slice(0, 5).map((suggestionUser) => (
+                    <Link
+                      key={suggestionUser._id}
+                      to={`/profile/${suggestionUser.username}`}
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center space-x-3 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
+                    >
+                      <img
+                        src={suggestionUser.avatar}
+                        alt={suggestionUser.username}
+                        className="w-8 h-8 rounded-full object-cover"
+                        onError={(e) => {
+                          e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(suggestionUser.username) + '&background=random&size=200';
+                        }}
+                      />
+                      <span className="truncate">{suggestionUser.username}</span>
+                    </Link>
+                  ))}
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                Incoming {incomingCall.type || 'call'}
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">From: {incomingCall.from}</p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                className="flex-1 btn-outline"
-                onClick={() => {
-                  socketService.emit('call:decline', { to: incomingCall.from, roomId: incomingCall.roomId });
-                  setIncomingCall(null);
-                }}
-              >
-                Decline
-              </button>
-              <button
-                className="flex-1 btn-gradient"
-                onClick={() => {
-                  const roomId = incomingCall.roomId;
-                  setIncomingCall(null);
-                  navigate(`/audio-call/${roomId}`);
-                }}
-              >
-                Accept
-              </button>
-            </div>
+            )}
           </div>
         </div>
-      )}
-    </nav>
-  );
-};
+      </nav>
 
-export default Navbar;
+      {/* Mobile Navbar */}
+      <nav className={`md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-dark-bg shadow-sm sticky top-0 z-50 transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+        {/* Logo */}
+        <Link to="/" className="flex items-center space-x-2" aria-label="D4D HUB home">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-1.5 rounded-lg">
+            <BsCameraReelsFill className="text-white w-5 h-5" />
+          </div>
+          <span className="text-lg font-black gradient-text">D4D HUB</span>
+        </Link>
+
+        {/* Icons */}
+        <div className="flex items-center space-x-4">
+          {/* Search Toggle */}
+          {showSearch && (
+            <button
+              onClick={() => navigate('/search')}
+              className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-card text-gray-600 dark:text-gray-400"
+              aria-label="Toggle search"
+            >
+              <AiOutlineSearch size={24} />
+            </button>
+          )}
+
+          {/* Notifications */}
+          <Link 
+            to="/notifications" 
+            className={`p-2 rounded-xl transition-all duration-200 relative ${
+              isActive('/notifications') 
+                ? 'bg-gradient-warning text-white shadow-glow-warning' 
+                : 'hover:bg-gray-100 dark:hover:bg-dark-card text-gray-600 dark:text-gray-400'
+            }`}
+            aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+          >
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center" aria-label={`${unreadCount} unread notifications`}>
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+            {isActive('/notifications') ? <AiFillHeart size={24} /> : <AiOutlineHeart size={24} />}
+          </Link>
+
+          {/* Theme Switcher */}
+          <ThemeSwitcher />
+
+          {/* User Profile Menu - Mobile */}
+          <div className="relative" ref={userMenuRef}>
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="flex items-center justify-center w-8 h-8 rounded-full overflow-hidden hover:scale-110 transition-transform duration-200"
+              aria-label="User profile menu"
+              aria-expanded={showUserMenu}
+              aria-haspopup="true"
+            >
+              <OptimizedImage
+                src={user?.avatar || '/default-avatar.png'}
+                alt={user?.username}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user?.username || 'U') + '&background=random&size=200';
+                }}
+              />
+            </button>
+
+            {/* User Menu Dropdown - Mobile */}
+            {showUserMenu && (
+              <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 animate-fadeIn">
+                {/* User Profile Header */}
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center space-x-3">
+                    <OptimizedImage
+                      src={user?.avatar || '/default-avatar.png'}
+                      alt={user?.username}
+                      className="w-12 h-12 rounded-full object-cover"
+                      onError={(e) => {
+                        e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user?.username || 'U') + '&background=random&size=200';
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 dark:text-white truncate">
+                        {user?.fullName || user?.username}
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        @{user?.username}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Menu Items */}
+                <div className="py-2 max-h-96 overflow-y-auto">
+                  {menuItems.map((item, index) => {
+                    // Skip admin items if user is not admin
+                    if (item.adminOnly && user?.role !== 'admin') return null;
+                    
+                    if (item.divider) {
+                      return <div key={index} className="border-t border-gray-200 dark:border-gray-700 my-2"></div>;
+                    }
+                    
+                    if (item.action) {
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            item.action();
+                            setShowUserMenu(false);
+                          }}
+                          className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
+                        >
+                          <item.icon className="w-5 h-5" />
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    }
+                    
+                    return (
+                      <Link
+                        key={index}
+                        to={item.path}
+                        onClick={() => setShowUserMenu(false)}
+                        className={`flex items-center space-x-3 px-4 py-3 text-left transition-colors ${
+                          isActive(item.path)
+                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        <item.icon className="w-5 h-5" />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                {/* Subscriptions Section */}
+                <div className="border-t border-gray-200 dark:border-gray-700 py-2">
+                  <h3 className="px-4 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400">SUBSCRIPTIONS</h3>
+                  {suggestions.slice(0, 5).map((suggestionUser) => (
+                    <Link
+                      key={suggestionUser._id}
+                      to={`/profile/${suggestionUser.username}`}
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center space-x-3 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
+                    >
+                      <img
+                        src={suggestionUser.avatar}
+                        alt={suggestionUser.username}
+                        className="w-8 h-8 rounded-full object-cover"
+                        onError={(e) => {
+                          e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(suggestionUser.username) + '&background=random&size=200';
+                        }}
+                      />
+                      <span className="truncate">{suggestionUser.username}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </nav>
+    </>
+  );
+}

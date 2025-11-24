@@ -15,7 +15,9 @@ const VideoAd = ({
     if (countdown > 0) {
       const timer = setTimeout(() => {
         setCountdown(countdown - 1);
-        if (countdown === 2) {
+        // Set skip availability based on ad type
+        const skipAfter = type === 'pre-roll' ? 3 : type === 'mid-roll' ? 3 : 2;
+        if (countdown === skipAfter) {
           setCanSkip(true);
         }
       }, 1000);
@@ -23,7 +25,7 @@ const VideoAd = ({
     } else {
       handleComplete();
     }
-  }, [countdown]);
+  }, [countdown, type]);
 
   const handleComplete = () => {
     setIsVisible(false);
@@ -38,11 +40,11 @@ const VideoAd = ({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
-      <div className="relative w-full max-w-4xl aspect-video bg-gray-900 rounded-lg overflow-hidden">
+    <div className="absolute inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
+      <div className="relative w-full h-full bg-gray-900 rounded-lg overflow-hidden">
         <div className="absolute top-4 right-4 z-10">
           <div className="bg-black bg-opacity-70 text-white px-3 py-1 rounded text-sm">
-            {type === 'pre-roll' ? 'Video will play in ' : 'Ad: '}
+            {type === 'pre-roll' ? 'Video will play in ' : type === 'mid-roll' ? 'Ad: ' : 'Thanks for watching!'}
             {countdown}s
           </div>
         </div>
@@ -64,7 +66,7 @@ const VideoAd = ({
             <p className="text-sm opacity-80">
               {type === 'pre-roll' && 'Your video will start shortly'}
               {type === 'mid-roll' && 'Your video will resume shortly'}
-              {type === 'post-roll' && 'Thanks for watching'}
+              {type === 'post-roll' && 'Thanks for watching!'}
             </p>
             <div className="mt-6">
               <div className="w-full bg-gray-700 rounded-full h-2">

@@ -54,6 +54,31 @@ const storySchema = new mongoose.Schema(
       default: () => new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
       index: { expires: 0 }, // Auto-delete when expired
     },
+    // New fields for Instagram-like features
+    effect: {
+      type: String,
+      enum: ['none', 'flowers', 'hearts', 'fireworks', 'sunglasses', 'crown', 'animal_ears', 'rainbow'],
+      default: 'none',
+    },
+    productTags: [
+      {
+        x: Number,
+        y: Number,
+        product: String,
+      }
+    ],
+    location: {
+      name: {
+        type: String,
+        trim: true,
+      },
+      lat: {
+        type: Number,
+      },
+      lng: {
+        type: Number,
+      },
+    },
   },
   {
     timestamps: true,
@@ -62,7 +87,7 @@ const storySchema = new mongoose.Schema(
 
 // Index for faster queries
 storySchema.index({ author: 1, createdAt: -1 });
-
+storySchema.index({ expiresAt: -1 });
 
 const Story = mongoose.model('Story', storySchema);
 

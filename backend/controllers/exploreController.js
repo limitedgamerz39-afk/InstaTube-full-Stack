@@ -15,12 +15,7 @@ export const getExplorePosts = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('author', 'username fullName avatar')
-      .populate({
-        path: 'derivedFrom',
-        select: 'author media mediaUrl mediaType',
-        populate: { path: 'author', select: 'username avatar' },
-      })
+      .populate('author', 'username fullName avatar subscriber')
       .lean();
 
     // Calculate engagement score
@@ -141,12 +136,12 @@ export const getSuggestedUsers = async (req, res) => {
   try {
     const currentUser = await User.findById(req.user._id);
 
-    // Get users with most followers that current user doesn't follow
+    // Get users with most subscriber that current user doesn't subscribe to
     const users = await User.find({
-      _id: { $nin: [...currentUser.following, currentUser._id] },
+      _id: { $nin: [...currentUser.subscribed, currentUser._id] },
     })
-      .select('username fullName avatar bio followers')
-      .sort({ followers: -1 })
+      .select('username fullName avatar bio subscriber')
+      .sort({ subscriber: -1 })
       .limit(10);
 
     res.status(200).json({

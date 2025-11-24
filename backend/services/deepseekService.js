@@ -42,7 +42,7 @@ export class DeepSeekService {
   // AI-powered hashtag suggestions
   static async generateHashtags(content) {
     if (!deepseekClient) {
-      return ['#instatube', '#social', '#share', '#moment'];
+      return ['#d4dhub', '#social', '#share', '#moment'];
     }
     
     try {
@@ -64,7 +64,7 @@ export class DeepSeekService {
       return response.choices[0].message.content.split(' ').filter(tag => tag.startsWith('#'));
     } catch (error) {
       console.error('DeepSeek Hashtags Error:', error);
-      return ['#instatube', '#social', '#share', '#moment'];
+      return ['#d4dhub', '#social', '#share', '#moment'];
     }
   }
 

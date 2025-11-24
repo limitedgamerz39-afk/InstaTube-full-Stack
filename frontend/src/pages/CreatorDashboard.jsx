@@ -73,7 +73,7 @@ const CreatorDashboard = () => {
                 <ul className="text-left text-sm text-gray-600 dark:text-gray-300 space-y-2">
                   <li className="flex items-center">
                     <AiOutlineHeart className="mr-2 text-pink-500" />
-                    1,000+ followers
+                    1,000+ subscriber
                   </li>
                   <li className="flex items-center">
                     <AiOutlineClockCircle className="mr-2 text-blue-500" />
@@ -87,12 +87,12 @@ const CreatorDashboard = () => {
                 <div className="text-left text-sm space-y-2">
                   <div>
                     <p className="text-gray-600 dark:text-gray-300">
-                      Followers: <span className="font-bold dark:text-white">{user?.followers?.length || 0}</span> / 1,000
+                      subscriber: <span className="font-bold dark:text-white">{user?.subscriber?.length || 0}</span> / 1,000
                     </p>
                     <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2 mt-1">
                       <div
                         className="bg-pink-500 h-2 rounded-full"
-                        style={{ width: `${Math.min((user?.followers?.length || 0) / 10, 100)}%` }}
+                        style={{ width: `${Math.min((user?.subscriber?.length || 0) / 10, 100)}%` }}
                       ></div>
                     </div>
                   </div>
@@ -114,12 +114,12 @@ const CreatorDashboard = () => {
             <button
               onClick={handleEnableMonetization}
               className="btn-primary text-lg px-8 py-3"
-              disabled={user?.followers?.length < 1000 || user?.totalWatchTime < 4000}
+              disabled={user?.subscriber?.length < 1000 || user?.totalWatchTime < 4000}
             >
               Enable Monetization
             </button>
 
-            {(user?.followers?.length < 1000 || user?.totalWatchTime < 4000) && (
+            {(user?.subscriber?.length < 1000 || user?.totalWatchTime < 4000) && (
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
                 Keep creating! You'll be eligible once you meet the requirements.
               </p>

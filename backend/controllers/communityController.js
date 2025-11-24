@@ -23,7 +23,7 @@ export const createCommunityPost = async (req, res) => {
     };
 
     if (req.file) {
-      const uploadResult = await uploadToStorage(req.file.buffer, 'instatube/community', req.file.originalname);
+      const uploadResult = await uploadToStorage(req.file.buffer, 'friendflix/community', req.file.originalname);
       postData.media = {
         url: uploadResult.secure_url,
         type: req.file.mimetype.startsWith('image/') ? 'image' : 'video',
@@ -47,9 +47,9 @@ export const createCommunityPost = async (req, res) => {
       .populate('creator', 'username profilePicture fullName verified');
 
     const user = await User.findById(req.user._id);
-    if (user.followers && user.followers.length > 0) {
-      const notifications = user.followers.map((followerId) => ({
-        recipient: followerId,
+    if (user.subscriber && user.subscriber.length > 0) {
+      const notifications = user.subscriber.map((subscriberId) => ({
+        recipient: subscriberId,
         sender: req.user._id,
         type: 'community_post',
         message: `${req.user.username} posted in Community`,
@@ -60,8 +60,8 @@ export const createCommunityPost = async (req, res) => {
 
       const io = req.app.get('io');
       if (io) {
-        user.followers.forEach((followerId) => {
-          io.to(followerId.toString()).emit('newNotification', {
+        user.subscriber.forEach((subscriberId) => {
+          io.to(subscriberId.toString()).emit('newNotification', {
             message: `${req.user.username} posted in Community`,
             link: `/community/${communityPost._id}`,
           });

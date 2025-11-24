@@ -1,24 +1,22 @@
-import axios from 'axios';
-
-const API_URL = '/api';
+import api from './api';
 
 const premiumAPI = {
   // Subscription APIs
-  getPlans: () => axios.get(`${API_URL}/subscription/plans`),
-  subscribe: (plan) => axios.post(`${API_URL}/subscription/subscribe`, { plan }),
-  cancelSubscription: () => axios.post(`${API_URL}/subscription/cancel`),
-  getSubscriptionStatus: () => axios.get(`${API_URL}/subscription/status`),
+  getPlans: () => api.get('/subscription/plans'),
+  subscribe: (plan) => api.post('/subscription/subscribe', { plan }),
+  cancelSubscription: () => api.post('/subscription/cancel'),
+  getSubscriptionStatus: () => api.get('/subscription/status'),
 
   // Creator APIs
-  enableMonetization: () => axios.post(`${API_URL}/creator/enable-monetization`),
-  getAnalytics: () => axios.get(`${API_URL}/creator/analytics`),
-  trackView: (postId, watchTime) => axios.post(`${API_URL}/creator/track-view`, { postId, watchTime }),
-  getEarnings: () => axios.get(`${API_URL}/creator/earnings`),
+  enableMonetization: () => api.post('/creator/enable-monetization'),
+  getAnalytics: () => api.get('/creator/analytics'),
+  trackView: (postId, watchTime) => api.post('/creator/track-view', { postId, watchTime }),
+  getEarnings: () => api.get('/creator/earnings'),
 
   // Super Chat APIs
   sendSuperChat: (streamId, amount, message) => 
-    axios.post(`${API_URL}/superchat/send`, { streamId, amount, message }),
-  getSuperChats: (streamId) => axios.get(`${API_URL}/superchat/${streamId}`),
+    api.post('/superchat/send', { streamId, amount, message }),
+  getSuperChats: (streamId) => api.get(`/superchat/${streamId}`),
 };
 
 export default premiumAPI;

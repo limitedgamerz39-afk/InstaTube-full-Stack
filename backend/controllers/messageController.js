@@ -26,7 +26,7 @@ export const sendVoiceMessage = async (req, res) => {
     }
 
     // Upload to MinIO (auto resource type handles audio/video containers like webm/ogg)
-    const upload = await uploadToStorage(req.file.buffer, 'instatube/messages', req.file.originalname);
+    const upload = await uploadToStorage(req.file.buffer, 'friendflix/messages', req.file.originalname);
 
     // Note: MinIO doesn't provide audio duration metadata
     // Setting to 0 as a placeholder - can be extracted client-side if needed
@@ -74,7 +74,7 @@ export const sendAttachment = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Attachment is required' });
     }
 
-    const upload = await uploadToStorage(req.file.buffer, 'instatube/messages', req.file.originalname);
+    const upload = await uploadToStorage(req.file.buffer, 'friendflix/messages', req.file.originalname);
     const mime = req.file.mimetype || '';
 
     let messagePayload = {
@@ -182,6 +182,25 @@ export const getConversation = async (req, res) => {
   try {
     const userId = req.params.userId;
 
+    // Validate userId
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required',
+      });
+    }
+
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    console.log(`Fetching conversation between ${req.user._id} and ${userId}`);
+
     const messages = await Message.find({
       $and: [
         {
@@ -202,20 +221,25 @@ export const getConversation = async (req, res) => {
       .populate('sender', 'username fullName avatar')
       .populate('receiver', 'username fullName avatar');
 
+    console.log(`Found ${messages.length} messages`);
+
     // Mark messages as read
-    await Message.updateMany(
+    const updatedCount = await Message.updateMany(
       { sender: userId, receiver: req.user._id, read: false },
       { read: true, readAt: new Date() }
     );
+    
+    console.log(`Marked ${updatedCount.modifiedCount} messages as read`);
 
     res.status(200).json({
       success: true,
       data: messages,
     });
   } catch (error) {
+    console.error('❌ Get conversation error:', error);
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || 'Failed to load conversation',
     });
   }
 };

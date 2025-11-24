@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+// Use the dedicated socket URL from environment variables
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || '/socket.io';
 
 class SocketService {
   constructor() {

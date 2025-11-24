@@ -16,13 +16,52 @@ const Analytics = () => {
     totalLikes: 0,
     totalComments: 0,
     totalViews: 0,
-    followers: 0,
-    following: 0,
+    subscriber: 0,
+    subscribed: 0,
     engagementRate: 0,
   });
   const [topPosts, setTopPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [viewerDemographics, setViewerDemographics] = useState({
+    ageGroups: [
+      { range: '13-17', percentage: 15 },
+      { range: '18-24', percentage: 35 },
+      { range: '25-34', percentage: 28 },
+      { range: '35-44', percentage: 15 },
+      { range: '45+', percentage: 7 }
+    ],
+    genders: [
+      { gender: 'Male', percentage: 55 },
+      { gender: 'Female', percentage: 42 },
+      { gender: 'Other', percentage: 3 }
+    ],
+    locations: [
+      { country: 'United States', percentage: 40 },
+      { country: 'India', percentage: 25 },
+      { country: 'United Kingdom', percentage: 10 },
+      { country: 'Canada', percentage: 8 },
+      { country: 'Australia', percentage: 7 },
+      { country: 'Other', percentage: 10 }
+    ]
+  });
+  const [retentionData, setRetentionData] = useState([
+    100, 95, 90, 85, 80, 78, 75, 72, 70, 68, 65, 63, 60, 58, 55, 53, 50, 48, 45, 43,
+    40, 38, 35, 33, 30, 28, 25, 23, 20, 18, 15, 13, 10, 8, 5, 3, 2, 1, 0, 0
+  ]);
+  const [watchTimeData, setWatchTimeData] = useState({
+    today: 1250,
+    thisWeek: 8750,
+    thisMonth: 32500,
+    averagePerVideo: 4.5
+  });
+  const [engagementMetrics, setEngagementMetrics] = useState({
+    likes: 12500,
+    comments: 3200,
+    shares: 1800,
+    saves: 2100,
+    clickThroughRate: 8.5
+  });
+  
   useEffect(() => {
     fetchAnalytics();
   }, []);
@@ -58,8 +97,8 @@ const Analytics = () => {
         totalLikes,
         totalComments,
         totalViews: totalLikes + totalComments * 3, // Estimate
-        followers: profileRes.data.data.followers.length,
-        following: profileRes.data.data.following.length,
+        subscriber: profileRes.data.data.subscriber.length,
+        subscribed: profileRes.data.data.subscribed.length,
         engagementRate:
           userPosts.length > 0
             ? ((totalLikes + totalComments) / userPosts.length).toFixed(1)
@@ -90,7 +129,7 @@ const Analytics = () => {
             <BsGraphUp className="mr-3" />
             Analytics Dashboard
           </h1>
-          <p className="text-purple-100">Track your InstaTube performance</p>
+          <p className="text-purple-100">Track your friendflix performance</p>
         </div>
 
         {/* Stats Grid */}
@@ -139,18 +178,18 @@ const Analytics = () => {
             </p>
           </div>
 
-          {/* Followers */}
+          {/* subscriber */}
           <div className="bg-white dark:bg-dark-card rounded-3xl p-6 shadow-lg hover:shadow-glow transition-all">
             <div className="flex items-center justify-between mb-3">
               <BsPeople className="text-green-500" size={32} />
               <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-1 rounded-full">
-                Followers
+                subscriber
               </span>
             </div>
             <p className="text-3xl font-bold text-gray-800 dark:text-white mb-1">
-              {stats.followers}
+              {stats.subscriber}
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Followers</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">subscriber</p>
           </div>
         </div>
 
@@ -222,8 +261,8 @@ const Analytics = () => {
             <h3 className="text-xl font-bold mb-4">🎯 Quick Stats</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span>Following</span>
-                <span className="font-bold">{stats.following}</span>
+                <span>subscribed</span>
+                <span className="font-bold">{stats.subscribed}</span>
               </div>
               <div className="flex justify-between">
                 <span>Est. Reach</span>
@@ -234,6 +273,196 @@ const Analytics = () => {
                 <span className="font-bold">
                   {stats.totalLikes + stats.totalComments}
                 </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Viewer Demographics */}
+        <div className="bg-white dark:bg-dark-card rounded-3xl p-8 shadow-lg mt-8">
+          <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
+            📊 Viewer Demographics
+          </h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Age Groups */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Age Distribution</h3>
+              <div className="space-y-3">
+                {viewerDemographics.ageGroups.map((group, index) => (
+                  <div key={index}>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{group.range}</span>
+                      <span className="text-sm font-medium text-gray-800 dark:text-white">{group.percentage}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                      <div 
+                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full" 
+                        style={{ width: `${group.percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Gender Distribution */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Gender Distribution</h3>
+              <div className="space-y-3">
+                {viewerDemographics.genders.map((gender, index) => (
+                  <div key={index}>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{gender.gender}</span>
+                      <span className="text-sm font-medium text-gray-800 dark:text-white">{gender.percentage}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-teal-500 h-2 rounded-full" 
+                        style={{ width: `${gender.percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Location Distribution */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Top Locations</h3>
+              <div className="space-y-3">
+                {viewerDemographics.locations.map((location, index) => (
+                  <div key={index}>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{location.country}</span>
+                      <span className="text-sm font-medium text-gray-800 dark:text-white">{location.percentage}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                      <div 
+                        className="bg-gradient-to-r from-green-500 to-yellow-500 h-2 rounded-full" 
+                        style={{ width: `${location.percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Retention Graph */}
+        <div className="bg-white dark:bg-dark-card rounded-3xl p-8 shadow-lg mt-8">
+          <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
+            📈 Watch Time Retention
+          </h2>
+          <div className="h-64 w-full">
+            <div className="relative h-full w-full">
+              {/* Y-axis labels */}
+              <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>100%</span>
+                <span>75%</span>
+                <span>50%</span>
+                <span>25%</span>
+                <span>0%</span>
+              </div>
+              
+              {/* Graph area */}
+              <div className="ml-8 h-full">
+                {/* Grid lines */}
+                <div className="absolute inset-0 ml-8 flex flex-col justify-between">
+                  {[0, 25, 50, 75, 100].map((percent) => (
+                    <div key={percent} className="border-t border-gray-200 dark:border-gray-700"></div>
+                  ))}
+                </div>
+                
+                {/* Retention curve */}
+                <div className="absolute inset-0 ml-8 flex items-end">
+                  <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <polyline
+                      fill="none"
+                      stroke="url(#gradient)"
+                      strokeWidth="2"
+                      points={retentionData.map((value, index) => 
+                        `${(index / (retentionData.length - 1)) * 100},${100 - value}`
+                      ).join(' ')}
+                    />
+                    <defs>
+                      <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#8B5CF6" />
+                        <stop offset="100%" stopColor="#EC4899" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+                
+                {/* X-axis labels */}
+                <div className="absolute bottom-0 left-8 right-0 flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                  <span>0%</span>
+                  <span>25%</span>
+                  <span>50%</span>
+                  <span>75%</span>
+                  <span>100%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
+            This graph shows how viewer engagement changes throughout your videos. 
+            Drops may indicate points where viewers lose interest.
+          </p>
+        </div>
+        
+        {/* Watch Time & Engagement Metrics */}
+        <div className="grid md:grid-cols-2 gap-8 mt-8">
+          {/* Watch Time Stats */}
+          <div className="bg-white dark:bg-dark-card rounded-3xl p-8 shadow-lg">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
+              ⏱️ Watch Time
+            </h2>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-gray-600 dark:text-gray-300">Today</span>
+                <span className="font-semibold text-gray-800 dark:text-white">{watchTimeData.today} minutes</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-gray-600 dark:text-gray-300">This Week</span>
+                <span className="font-semibold text-gray-800 dark:text-white">{watchTimeData.thisWeek} minutes</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-gray-600 dark:text-gray-300">This Month</span>
+                <span className="font-semibold text-gray-800 dark:text-white">{watchTimeData.thisMonth} minutes</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-gray-600 dark:text-gray-300">Avg. Per Video</span>
+                <span className="font-semibold text-gray-800 dark:text-white">{watchTimeData.averagePerVideo} minutes</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Engagement Metrics */}
+          <div className="bg-white dark:bg-dark-card rounded-3xl p-8 shadow-lg">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
+              💬 Engagement Metrics
+            </h2>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-gray-600 dark:text-gray-300">Likes</span>
+                <span className="font-semibold text-gray-800 dark:text-white">{engagementMetrics.likes.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-gray-600 dark:text-gray-300">Comments</span>
+                <span className="font-semibold text-gray-800 dark:text-white">{engagementMetrics.comments.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-gray-600 dark:text-gray-300">Shares</span>
+                <span className="font-semibold text-gray-800 dark:text-white">{engagementMetrics.shares.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-gray-600 dark:text-gray-300">Saves</span>
+                <span className="font-semibold text-gray-800 dark:text-white">{engagementMetrics.saves.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-gray-600 dark:text-gray-300">Click-Through Rate</span>
+                <span className="font-semibold text-gray-800 dark:text-white">{engagementMetrics.clickThroughRate}%</span>
               </div>
             </div>
           </div>

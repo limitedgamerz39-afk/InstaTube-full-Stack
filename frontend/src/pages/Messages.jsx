@@ -187,8 +187,8 @@ const Messages = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 pb-20 md:pb-8">
       {/* Header with Title and Actions */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold dark:text-white">Messages</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
+        <h1 className="text-xl md:text-2xl font-bold dark:text-white">Messages</h1>
         <div className="flex items-center space-x-2">
           <button
             onClick={handleMarkAllAsRead}
@@ -204,12 +204,10 @@ const Messages = () => {
           >
             <FiUsers size={20} />
           </button>
-          {/* Removed New Message shortcut to avoid duplicate search controls */}
-
         </div>
       </div>
 
-      {/* Search Conversations - Keep this one since it searches within messages */}
+      {/* Search Conversations */}
       <div className="mb-4">
         <div className="relative">
           <AiOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -218,14 +216,14 @@ const Messages = () => {
             placeholder="Search conversations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:text-white"
+            className="w-full pl-10 pr-4 py-2 md:py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:text-white text-sm md:text-base"
           />
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="mb-4">
-        <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+      <div className="mb-4 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 min-w-max">
           {[
             { key: 'all', label: 'All', icon: AiOutlineMessage },
             { key: 'unread', label: 'Unread', icon: AiOutlineCheck },
@@ -235,16 +233,16 @@ const Messages = () => {
             <button
               key={key}
               onClick={() => setActiveFilter(key)}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition ${
+              className={`flex items-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 md:py-2 rounded-md text-xs md:text-sm font-medium transition whitespace-nowrap ${
                 activeFilter === key
                   ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary'
               }`}
             >
-              <Icon size={16} />
+              <Icon size={14} className="md:size-16" />
               <span>{label}</span>
               {key === 'unread' && conversations.filter(c => c.unreadCount > 0).length > 0 && (
-                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 md:px-2 md:py-0.5">
                   {conversations.filter(c => c.unreadCount > 0).length}
                 </span>
               )}
@@ -256,8 +254,8 @@ const Messages = () => {
       {/* Search Results */}
       {searchQuery.trim().length > 2 && (
         <div className="card dark:bg-gray-800 dark:border-gray-700 mb-6">
-          <div className="p-4 border-b dark:border-gray-700 flex items-center justify-between">
-            <h2 className="font-semibold dark:text-white">Messages matching "{searchQuery}"</h2>
+          <div className="p-3 md:p-4 border-b dark:border-gray-700 flex items-center justify-between">
+            <h2 className="font-semibold dark:text-white text-sm md:text-base">Messages matching "{searchQuery}"</h2>
             <span className="text-xs text-gray-500 dark:text-gray-400">{searchResults.length} found</span>
           </div>
           {searchResults.length === 0 ? (
@@ -265,22 +263,22 @@ const Messages = () => {
           ) : (
             <div className="divide-y dark:divide-gray-700">
               {searchResults.map((msg) => (
-                <div key={msg._id} className="p-4 flex items-center gap-3">
+                <div key={msg._id} className="p-3 md:p-4 flex items-center gap-3">
                   <img src={msg.sender._id === msg.receiver._id ? msg.sender.avatar : msg.sender.avatar} alt={msg.sender.username} className="h-8 w-8 rounded-full" />
-                  <div className="flex-1">
-                    <div className="text-sm dark:text-white">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs md:text-sm dark:text-white">
                       <span className="font-semibold">{msg.sender.username}</span>
                       <span className="text-gray-500 dark:text-gray-400"> → </span>
                       <span className="font-semibold">{msg.receiver.username}</span>
                       <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">{timeAgo(msg.createdAt)}</span>
                     </div>
-                    <div className="text-sm text-gray-700 dark:text-gray-300 break-words">
+                    <div className="text-xs md:text-sm text-gray-700 dark:text-gray-300 break-words">
                       {msg.text || msg.fileName || '[attachment]'}
                     </div>
                   </div>
                   <button
                     onClick={() => navigate(`/messages/${msg.sender.username}`)}
-                    className="px-3 py-1 text-xs bg-primary text-white rounded"
+                    className="px-2 py-1 text-xs bg-primary text-white rounded"
                   >
                     Open
                   </button>
@@ -291,16 +289,16 @@ const Messages = () => {
         </div>
       )}
         {filteredConversations.length === 0 ? (
-          <div className="p-12 text-center">
-            <AiOutlineMessage size={64} className="mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+          <div className="p-8 md:p-12 text-center">
+            <AiOutlineMessage size={48} className="mx-auto text-gray-400 mb-4 md:mb-4 md:size-64" />
+            <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm md:text-base">
               {searchQuery || activeFilter !== 'all' 
                 ? 'No conversations match your search' 
                 : 'No messages yet'
               }
             </p>
             {!searchQuery && activeFilter === 'all' && (
-              <Link to="/search" className="btn-primary">
+              <Link to="/search" className="btn-primary text-sm md:text-base">
                 Find People to Message
               </Link>
             )}
@@ -310,48 +308,48 @@ const Messages = () => {
             {filteredConversations.map((conversation) => (
               <div
                 key={conversation.user._id}
-                className="flex items-center space-x-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition relative group"
+                className="flex items-center space-x-3 md:space-x-4 p-3 md:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition relative group"
               >
                 {/* Main conversation link */}
                 <Link
                   to={`/messages/${conversation.user.username}`}
-                  className="flex items-center space-x-4 flex-1 min-w-0"
+                  className="flex items-center space-x-3 md:space-x-4 flex-1 min-w-0"
                 >
                   <div className="relative flex-shrink-0">
                     <img
                       src={conversation.user.avatar}
                       alt={conversation.user.username}
-                      className="h-14 w-14 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                      className="h-12 w-12 md:h-14 md:w-14 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
                     />
                     {/* Online Status */}
                     {onlineUsers.has(conversation.user._id) && (
-                      <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full z-10"></span>
+                      <span className="absolute bottom-0 right-0 w-3 h-3 md:w-4 md:h-4 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full z-10"></span>
                     )}
                     {/* Unread Badge */}
                     {conversation.unreadCount > 0 && (
-                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold z-10">
+                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 md:h-5 md:w-5 flex items-center justify-center font-semibold z-10 text-[10px] md:text-xs">
                         {conversation.unreadCount > 9 ? '9+' : conversation.unreadCount}
                       </div>
                     )}
                     {/* Starred indicator */}
                     {conversation.isStarred && (
-                      <div className="absolute -top-1 -left-1 bg-yellow-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center z-10">
-                        <AiOutlineStar size={12} />
+                      <div className="absolute -top-1 -left-1 bg-yellow-500 text-white text-xs rounded-full h-4 w-4 md:h-5 md:w-5 flex items-center justify-center z-10">
+                        <AiOutlineStar size={10} className="md:size-12" />
                       </div>
                     )}
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="font-semibold dark:text-white truncate">
+                      <p className="font-semibold dark:text-white truncate text-sm md:text-base">
                         {conversation.user.username}
                       </p>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 text-[10px] md:text-xs">
                         {timeAgo(conversation.lastMessage.createdAt)}
                       </span>
                     </div>
                     <p
-                      className={`text-sm truncate ${
+                      className={`text-xs md:text-sm truncate ${
                         conversation.unreadCount > 0
                           ? 'font-semibold text-black dark:text-white'
                           : 'text-gray-600 dark:text-gray-400'
@@ -374,10 +372,10 @@ const Messages = () => {
                         e.preventDefault();
                         handleMarkAsRead(conversation.user._id);
                       }}
-                      className="p-2 text-gray-400 hover:text-green-500 transition"
+                      className="p-1.5 md:p-2 text-gray-400 hover:text-green-500 transition"
                       title="Mark as read"
                     >
-                      <AiOutlineCheck size={16} />
+                      <AiOutlineCheck size={14} className="md:size-16" />
                     </button>
                   )}
                   <button
@@ -385,24 +383,24 @@ const Messages = () => {
                       e.preventDefault();
                       handleToggleStar(conversation.user._id);
                     }}
-                    className={`p-2 transition ${
+                    className={`p-1.5 md:p-2 transition ${
                       conversation.isStarred 
                         ? 'text-yellow-500' 
                         : 'text-gray-400 hover:text-yellow-500'
                     }`}
                     title={conversation.isStarred ? "Remove from starred" : "Add to starred"}
                   >
-                    <AiOutlineStar size={16} />
+                    <AiOutlineStar size={14} className="md:size-16" />
                   </button>
                   <button
                     onClick={(e) => {
                       e.preventDefault();
                       handleArchiveConversation(conversation.user._id);
                     }}
-                    className="p-2 text-gray-400 hover:text-orange-500 transition"
+                    className="p-1.5 md:p-2 text-gray-400 hover:text-orange-500 transition"
                     title="Archive conversation"
                   >
-                    <FiArchive size={16} />
+                    <FiArchive size={14} className="md:size-16" />
                   </button>
                 </div>
               </div>

@@ -4,8 +4,22 @@ import jwt from 'jsonwebtoken';
 const initializeSocket = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+      origin: [
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'http://localhost:5000',
+        'http://localhost:5001', // Add this missing origin
+        'http://localhost:5002',
+        'http://192.168.1.3:5001', // Add this for network access
+        'http://192.168.1.3:5002',
+        'http://192.168.1.3:3000', // Add this for mobile app access
+        // Add your public IP here for self-hosting
+        'http://YOUR_PUBLIC_IP:5001',
+        'http://YOUR_PUBLIC_IP:3000',
+      ],
       credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
     },
   });
 
@@ -94,6 +108,48 @@ const initializeSocket = (server) => {
         io.to(to).emit('call:decline', { roomId, from });
       }
     });
+
+    // Live Stream Events
+    socket.on('joinLiveStream', ({ streamId, userId }) => {
+      if (streamId && userId) {
+        // Join the stream room
+        socket.join(`stream_${streamId}`);
+        
+        // Emit viewer count update to all viewers in this stream
+        const room = io.sockets.adapter.rooms.get(`stream_${streamId}`);
+        const viewerCount = room ? room.size : 0;
+        
+        io.to(`stream_${streamId}`).emit('viewerCountUpdate', viewerCount);
+      }
+    });
+
+    socket.on('leaveLiveStream', ({ streamId, userId }) => {
+      if (streamId && userId) {
+        // Leave the stream room
+        socket.leave(`stream_${streamId}`);
+        
+        // Emit viewer count update to all viewers in this stream
+        const room = io.sockets.adapter.rooms.get(`stream_${streamId}`);
+        const viewerCount = room ? room.size : 0;
+        
+        io.to(`stream_${streamId}`).emit('viewerCountUpdate', viewerCount);
+      }
+    });
+
+    socket.on('sendStreamComment', ({ streamId, comment }) => {
+      if (streamId && comment) {
+        // Emit comment to all viewers in this stream
+        io.to(`stream_${streamId}`).emit('streamComment', comment);
+      }
+    });
+
+    socket.on('sendStreamLike', ({ streamId, userId }) => {
+      if (streamId && userId) {
+        // Emit like to all viewers in this stream
+        io.to(`stream_${streamId}`).emit('streamLike', { userId });
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log(`❌ User disconnected: ${socket.userId}`);
       onlineUsers.delete(socket.userId);

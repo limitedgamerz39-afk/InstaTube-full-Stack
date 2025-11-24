@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { AiOutlineClose, AiOutlineHeart, AiOutlineSend } from 'react-icons/ai';
 import { BsThreeDots } from 'react-icons/bs';
 import { timeAgo } from '../utils/timeAgo';
+import { PollSticker, QuizSticker, SliderSticker, QuestionSticker } from '../components/StoryStickers';
 
 const StoryViewer = () => {
   const { userId } = useParams();
@@ -235,6 +236,61 @@ const StoryViewer = () => {
               className="w-full h-full object-contain"
             />
           )}
+
+          {/* Stickers */}
+          {currentStory.stickers && currentStory.stickers.map((sticker, index) => {
+            // Position stickers absolutely based on their x,y coordinates
+            const stickerStyle = {
+              position: 'absolute',
+              left: `${sticker.x}%`,
+              top: `${sticker.y}%`,
+              transform: 'translate(-50%, -50%)',
+              zIndex: 10
+            };
+
+            switch (sticker.type) {
+              case 'poll':
+                return (
+                  <div key={index} style={stickerStyle}>
+                    <PollSticker 
+                      poll={sticker.data} 
+                      onVote={(optionIndex) => console.log('Poll voted:', optionIndex)}
+                      hasVoted={false}
+                    />
+                  </div>
+                );
+              case 'quiz':
+                return (
+                  <div key={index} style={stickerStyle}>
+                    <QuizSticker 
+                      quiz={sticker.data} 
+                      onAnswer={(answerIndex) => console.log('Quiz answered:', answerIndex)}
+                      hasAnswered={false}
+                    />
+                  </div>
+                );
+              case 'slider':
+                return (
+                  <div key={index} style={stickerStyle}>
+                    <SliderSticker 
+                      slider={sticker.data} 
+                      onSlide={(value) => console.log('Slider value:', value)}
+                      hasSlid={false}
+                    />
+                  </div>
+                );
+              case 'question':
+                return (
+                  <div key={index} style={stickerStyle}>
+                    <QuestionSticker 
+                      onSubmit={(answer) => console.log('Question answered:', answer)}
+                    />
+                  </div>
+                );
+              default:
+                return null;
+            }
+          })}
 
           {/* Caption */}
           {currentStory.caption && (

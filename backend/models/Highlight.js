@@ -9,12 +9,9 @@ const highlightSchema = new mongoose.Schema(
     },
     title: {
       type: String,
-      required: [true, 'Highlight title is required'],
-      maxlength: [50, 'Title cannot exceed 50 characters'],
-    },
-    coverImage: {
-      type: String,
       required: true,
+      trim: true,
+      maxlength: [50, 'Highlight title cannot exceed 50 characters'],
     },
     stories: [
       {
@@ -22,9 +19,13 @@ const highlightSchema = new mongoose.Schema(
         ref: 'Story',
       },
     ],
-    order: {
-      type: Number,
-      default: 0,
+    coverImage: {
+      type: String,
+      trim: true,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
     },
   },
   {
@@ -33,7 +34,7 @@ const highlightSchema = new mongoose.Schema(
 );
 
 // Index for faster queries
-highlightSchema.index({ user: 1, order: 1 });
+highlightSchema.index({ user: 1, createdAt: -1 });
 
 const Highlight = mongoose.model('Highlight', highlightSchema);
 

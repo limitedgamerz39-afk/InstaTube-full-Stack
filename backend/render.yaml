@@ -1,10 +1,9 @@
-# Render configuration for InstaTube Backend
+# Render configuration for D4D HUB Backend
 
 services:
   - type: web
-    name: instatube-backend
-    env: node
-    region: oregon
+    name: d4dhub-backend
+    runtime: node
     plan: free
     buildCommand: npm install
     startCommand: npm start
@@ -12,20 +11,26 @@ services:
       - key: NODE_ENV
         value: production
       - key: MONGO_URI
-        sync: false  # Set in Render dashboard
+        sync: false
       - key: JWT_SECRET
-        sync: false  # Set in Render dashboard
-      - key: MINIO_ENDPOINT
-        sync: false  # Set in Render dashboard - MinIO server endpoint
-      - key: MINIO_PORT
-        value: 9000
-      - key: MINIO_USE_SSL
-        value: false
-      - key: MINIO_ACCESS_KEY
-        sync: false  # Set in Render dashboard
-      - key: MINIO_SECRET_KEY
-        sync: false  # Set in Render dashboard
-      - key: MINIO_BUCKET
-        value: instatube
-      - key: OPENAI_API_KEY
-        sync: false  # Optional - for AI features
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        value: https://d4dhub-frontend.onrender.com
+      - key: PORT
+        value: 10000
+
+  - type: pserv
+    name: d4dhub-redis
+    runtime: docker
+    plan: free
+    dockerfilePath: ./redis/Dockerfile
+    autoDeploy: false
+    envVars:
+      - key: REDIS_PORT
+        value: 6379
