@@ -17,6 +17,13 @@ const CloseFriends = () => {
   }, []);
 
   const fetchData = async () => {
+    // Check if user is available
+    if (!user || !user.username) {
+      console.error('User not available for close friends');
+      setLoading(false);
+      return;
+    }
+    
     try {
       const response = await userAPI.getProfile(user.username);
       const subscribed = response.data.data.subscribed;

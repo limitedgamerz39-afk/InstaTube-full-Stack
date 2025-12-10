@@ -1,17 +1,17 @@
-// Initialize MongoDB database and user for InstaTube
+// Initialize MongoDB database and user for D4D HUB
 print('Starting MongoDB initialization...');
 
-// Switch to the instatube database
-db = db.getSiblingDB('instatube');
+// Switch to the d4dhub database
+db = db.getSiblingDB('d4dhub');
 
-// Create a user for the instatube database
+// Create a user for the d4dhub database
 db.createUser({
-  user: 'instatube_user',
-  pwd: 'instatube_password',
+  user: 'd4dhub_user',
+  pwd: 'd4dhub_password',
   roles: [
     {
       role: 'readWrite',
-      db: 'instatube'
+      db: 'd4dhub'
     }
   ]
 });

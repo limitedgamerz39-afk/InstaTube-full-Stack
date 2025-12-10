@@ -24,6 +24,7 @@ import {
   resolveReport,
   dismissReport,
   getReportDetails,
+  getRecentAdminActivities,
 } from '../controllers/adminController.js';
 import {
   getSecurityEvents,
@@ -79,6 +80,7 @@ router.get('/analytics/monetization', getMonetizationAnalytics);
 // System
 router.get('/system/health', getSystemHealth);
 router.get('/logs', getSystemLogs);
+router.get('/recent-activities', getRecentAdminActivities);
 
 // Security monitoring routes
 router.get('/security/events', getSecurityEvents);

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { postAPI } from '../services/api';
+import { formatDuration, getThumbnailUrl } from '../utils/formatUtils';
 import socketService from '../services/socket';
 import toast from 'react-hot-toast';
 import {
@@ -189,7 +190,7 @@ const PostCard = ({ post: initialPost, onDelete }) => {
     
     return (
       <div className="flex items-center gap-2 mt-2 p-2 bg-gray-100 dark:bg-dark-card rounded-lg">
-        <FiMusic className="text-purple-500 flex-shrink-0" />
+        <FiMusic className="text-primary-500 flex-shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
             {post.audio.title}
@@ -394,7 +395,7 @@ const PostCard = ({ post: initialPost, onDelete }) => {
             onClick={handlePlayVideo}
           >
             <img
-              src={post.media[0].thumbnail || defaultThumbnail}
+              src={getThumbnailUrl(post.media[0])}
               alt="Video thumbnail"
               className="w-full aspect-video object-cover"
               onError={(e) => {
@@ -408,7 +409,7 @@ const PostCard = ({ post: initialPost, onDelete }) => {
             </div>
             {post.durationSec && (
               <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                {Math.floor(post.durationSec / 60)}:{String(post.durationSec % 60).padStart(2, '0')}
+                {formatDuration(post.durationSec)}
               </div>
             )}
           </div>
@@ -433,8 +434,8 @@ const PostCard = ({ post: initialPost, onDelete }) => {
               onClick={handleLike}
               className={`flex items-center space-x-1 transition-colors ${
                 isLiked 
-                  ? 'text-red-500 hover:text-red-600' 
-                  : 'text-gray-600 dark:text-gray-400 hover:text-red-500'
+                  ? 'text-primary-500 hover:text-primary-600' 
+                  : 'text-gray-600 dark:text-gray-400 hover:text-primary-500'
               }`}
               aria-label={isLiked ? "Unlike post" : "Like post"}
             >

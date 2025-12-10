@@ -43,6 +43,7 @@ export const adminAPI = {
   getAdvancedUserAnalytics: (days = 30) => api.get(`/admin/analytics/users/advanced?days=${days}`),
   getContentAnalytics: (days = 30) => api.get(`/admin/analytics/content?days=${days}`),
   getMonetizationAnalytics: () => api.get(`/admin/analytics/monetization`),
+  getRecentAdminActivities: (limit = 10) => api.get(`/admin/recent-activities?limit=${limit}`),
 
   // System
   getSystemHealth: () => api.get(`/admin/system/health`),

@@ -43,7 +43,7 @@ echo.
 echo Next steps:
 echo 1. Access the MinIO console at http://localhost:9001
 echo 2. Log in with credentials from docker-compose.yml
-echo 3. Create a bucket named "instatube"
+echo 3. Create a bucket named "d4dhub"
 echo 4. Access the application at http://localhost:5001
 echo.
 echo For more details, check the DEPLOYMENT_GUIDE.md file.

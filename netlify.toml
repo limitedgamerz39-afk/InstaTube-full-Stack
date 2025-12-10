@@ -1,4 +1,4 @@
-# Netlify configuration for friendflix Frontend
+# Netlify configuration for D4D HUB Frontend
 
 [build]
   base = "frontend"

@@ -17,6 +17,15 @@ import {
   FiCheckCircle,
   FiXCircle,
   FiClock,
+  FiFlag,
+  FiEye,
+  FiMail,
+  FiPhone,
+  FiMapPin,
+  FiCalendar,
+  FiActivity,
+  FiBarChart2,
+  FiInfo
 } from 'react-icons/fi';
 
 const AdminReports = () => {
@@ -30,9 +39,13 @@ const AdminReports = () => {
   const [filters, setFilters] = useState({
     type: '',
     status: '',
+    sortBy: 'createdAt',
+    sortOrder: 'desc'
   });
   const [selectedReports, setSelectedReports] = useState([]);
   const [bulkAction, setBulkAction] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [reportDetails, setReportDetails] = useState(null);
 
   useEffect(() => {
     if (user?.role === 'admin') {
@@ -184,6 +197,20 @@ const AdminReports = () => {
     }
   };
 
+  const viewReportDetails = async (reportId) => {
+    try {
+      const response = await adminAPI.getReportDetails(reportId);
+      setReportDetails(response.data.data);
+    } catch (error) {
+      toast.error('Failed to load report details');
+      console.error(error);
+    }
+  };
+
+  const closeReportDetails = () => {
+    setReportDetails(null);
+  };
+
   // Check if user is admin
   if (!user || user.role !== 'admin') {
     return <Navigate to="/" replace />;
@@ -213,8 +240,19 @@ const AdminReports = () => {
     }
   };
 
+  const getPriorityBadge = (priority) => {
+    switch (priority) {
+      case 'high':
+        return <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">High</span>;
+      case 'medium':
+        return <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Medium</span>;
+      default:
+        return <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Low</span>;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -238,7 +276,7 @@ const AdminReports = () => {
             </div>
           </div>
 
-          {/* Search and Filters */}
+          {/* Search and Actions */}
           <div className="mt-4 sm:mt-6 space-y-4">
             <div className="flex flex-col md:flex-row gap-2">
               <div className="flex-1 relative">
@@ -248,7 +286,7 @@ const AdminReports = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Search reports..."
+                  placeholder="Search reports by reason, username, or content..."
                   className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -259,6 +297,13 @@ const AdminReports = () => {
                 Search
               </button>
               <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-4 sm:px-6 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition flex-shrink-0 flex items-center gap-2"
+              >
+                <FiFilter className="w-4 h-4" />
+                Filters
+              </button>
+              <button
                 onClick={exportReports}
                 className="px-4 sm:px-6 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex-shrink-0 flex items-center gap-2"
               >
@@ -267,32 +312,64 @@ const AdminReports = () => {
               </button>
             </div>
 
-            {/* Filters */}
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={filters.type}
-                onChange={(e) => handleFilterChange('type', e.target.value)}
-                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Types</option>
-                <option value="post">Posts</option>
-                <option value="comment">Comments</option>
-                <option value="user">Users</option>
-                <option value="story">Stories</option>
-                <option value="message">Messages</option>
-              </select>
+            {/* Filters - Collapsible */}
+            {showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Content Type</label>
+                  <select
+                    value={filters.type}
+                    onChange={(e) => handleFilterChange('type', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Types</option>
+                    <option value="post">Posts</option>
+                    <option value="comment">Comments</option>
+                    <option value="user">Users</option>
+                    <option value="story">Stories</option>
+                    <option value="message">Messages</option>
+                  </select>
+                </div>
 
-              <select
-                value={filters.status}
-                onChange={(e) => handleFilterChange('status', e.target.value)}
-                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="resolved">Resolved</option>
-                <option value="dismissed">Dismissed</option>
-              </select>
-            </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                  <select
+                    value={filters.status}
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="dismissed">Dismissed</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Sort By</label>
+                  <select
+                    value={filters.sortBy}
+                    onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="createdAt">Date Created</option>
+                    <option value="priority">Priority</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Order</label>
+                  <select
+                    value={filters.sortOrder}
+                    onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="desc">Descending</option>
+                    <option value="asc">Ascending</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -377,6 +454,9 @@ const AdminReports = () => {
                         Status
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Priority
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Date
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -431,18 +511,28 @@ const AdminReports = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-white">
+                          <div className="text-sm text-gray-900 dark:text-white max-w-xs truncate">
                             {report.reason}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {getStatusBadge(report.status)}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getPriorityBadge(report.priority)}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {new Date(report.createdAt).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => viewReportDetails(report._id)}
+                              className="p-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                              title="View details"
+                            >
+                              <FiEye className="w-4 h-4" />
+                            </button>
                             {report.status === 'pending' && (
                               <>
                                 <button
@@ -546,40 +636,55 @@ const AdminReports = () => {
                         {getStatusBadge(report.status)}
                       </div>
                     </div>
-                  </div>
-
-                  {/* Date */}
-                  <div className="mb-4 text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                    <FiClock className="w-3 h-3 mr-1" />
-                    {new Date(report.createdAt).toLocaleDateString()}
+                    <div className="bg-gray-50 dark:bg-gray-700 rounded p-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Priority</p>
+                      <div className="mt-1">
+                        {getPriorityBadge(report.priority)}
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-700 rounded p-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Date</p>
+                      <p className="text-sm text-gray-900 dark:text-white">
+                        {new Date(report.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Action Buttons */}
-                  {report.status === 'pending' && (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => handleResolveReport(report._id)}
-                        className="flex-1 min-w-[80px] px-3 py-2 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 rounded-lg transition text-xs font-medium flex items-center justify-center gap-1"
-                      >
-                        <FiCheckCircle className="w-3 h-3" />
-                        Resolve
-                      </button>
-                      <button
-                        onClick={() => handleDismissReport(report._id)}
-                        className="flex-1 min-w-[80px] px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg transition text-xs font-medium flex items-center justify-center gap-1"
-                      >
-                        <FiXCircle className="w-3 h-3" />
-                        Dismiss
-                      </button>
-                      <button
-                        onClick={() => handleTakeAction(report._id, 'remove')}
-                        className="flex-1 min-w-[80px] px-3 py-2 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 rounded-lg transition text-xs font-medium flex items-center justify-center gap-1"
-                      >
-                        <FiAlertTriangle className="w-3 h-3" />
-                        Action
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => viewReportDetails(report._id)}
+                      className="flex-1 min-w-[80px] px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg transition text-xs font-medium flex items-center justify-center gap-1"
+                    >
+                      <FiEye className="w-3 h-3" />
+                      View
+                    </button>
+                    {report.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => handleResolveReport(report._id)}
+                          className="flex-1 min-w-[80px] px-3 py-2 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 rounded-lg transition text-xs font-medium flex items-center justify-center gap-1"
+                        >
+                          <FiCheckCircle className="w-3 h-3" />
+                          Resolve
+                        </button>
+                        <button
+                          onClick={() => handleDismissReport(report._id)}
+                          className="flex-1 min-w-[80px] px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg transition text-xs font-medium flex items-center justify-center gap-1"
+                        >
+                          <FiXCircle className="w-3 h-3" />
+                          Dismiss
+                        </button>
+                        <button
+                          onClick={() => handleTakeAction(report._id, 'remove')}
+                          className="flex-1 min-w-[80px] px-3 py-2 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 rounded-lg transition text-xs font-medium flex items-center justify-center gap-1"
+                        >
+                          <FiAlertTriangle className="w-3 h-3" />
+                          Action
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -611,6 +716,136 @@ const AdminReports = () => {
           </>
         )}
       </div>
+
+      {/* Report Details Modal */}
+      {reportDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Report Details</h3>
+                <button 
+                  onClick={closeReportDetails}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <FiXCircle className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-6">
+                {/* Reporter Info */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Reporter</h4>
+                  <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <img 
+                      src={reportDetails.reporter?.avatar || '/default-avatar.png'} 
+                      alt={reportDetails.reporter?.username}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {reportDetails.reporter?.fullName || 'Unknown User'}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        @{reportDetails.reporter?.username || 'unknown'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Reported Content */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Reported Content</h4>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="flex items-center mb-2">
+                      <div className="flex-shrink-0">
+                        {getContentTypeIcon(reportDetails.reportedType)}
+                      </div>
+                      <div className="ml-2">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white capitalize">
+                          {reportDetails.reportedType}
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      {reportDetails.reportedContent?.caption || 
+                       reportDetails.reportedContent?.text || 
+                       reportDetails.reportedContent?.username || 
+                       'Content details not available'}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Report Details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Reason</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {reportDetails.reason}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                    <div className="mt-1">
+                      {getStatusBadge(reportDetails.status)}
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Priority</p>
+                    <div className="mt-1">
+                      {getPriorityBadge(reportDetails.priority)}
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Reported On</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {new Date(reportDetails.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Resolution Info */}
+                {reportDetails.status !== 'pending' && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Resolution</h4>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        {reportDetails.resolutionNotes || 'No resolution notes provided'}
+                      </p>
+                      {reportDetails.actionTaken && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          Action taken: {reportDetails.actionTaken}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        Resolved on: {new Date(reportDetails.resolvedAt).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Actions */}
+                {reportDetails.status === 'pending' && (
+                  <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      onClick={() => handleDismissReport(reportDetails._id)}
+                      className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium"
+                    >
+                      Dismiss
+                    </button>
+                    <button
+                      onClick={() => handleResolveReport(reportDetails._id)}
+                      className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium"
+                    >
+                      Resolve Report
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

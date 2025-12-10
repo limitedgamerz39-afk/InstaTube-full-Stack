@@ -15,6 +15,18 @@ import {
   FiEye,
   FiFilter,
   FiDownload,
+  FiClock,
+  FiUser,
+  FiTag,
+  FiFlag,
+  FiGlobe,
+  FiLock,
+  FiUsers,
+  FiBarChart2,
+  FiInfo,
+  FiPlay,
+  FiFilm,
+  FiCamera
 } from 'react-icons/fi';
 
 const AdminPosts = () => {
@@ -30,7 +42,11 @@ const AdminPosts = () => {
   const [bulkAction, setBulkAction] = useState('');
   const [filters, setFilters] = useState({
     category: '',
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+    status: ''
   });
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     if (user?.role === 'admin') {
@@ -171,8 +187,34 @@ const AdminPosts = () => {
     return <Navigate to="/" replace />;
   }
 
+  // Get post type icon
+  const getPostTypeIcon = (type) => {
+    switch (type) {
+      case 'video':
+        return <FiPlay className="w-4 h-4" />;
+      case 'reel':
+        return <FiFilm className="w-4 h-4" />;
+      case 'story':
+        return <FiCamera className="w-4 h-4" />;
+      default:
+        return <FiImage className="w-4 h-4" />;
+    }
+  };
+
+  // Get privacy icon
+  const getPrivacyIcon = (privacy) => {
+    switch (privacy) {
+      case 'private':
+        return <FiLock className="w-4 h-4" />;
+      case 'followers':
+        return <FiUsers className="w-4 h-4" />;
+      default:
+        return <FiGlobe className="w-4 h-4" />;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -196,7 +238,7 @@ const AdminPosts = () => {
             </div>
           </div>
 
-          {/* Search and Filters */}
+          {/* Search and Actions */}
           <div className="mt-4 sm:mt-6 space-y-4">
             <div className="flex flex-col md:flex-row gap-2">
               <div className="flex-1 relative">
@@ -206,7 +248,7 @@ const AdminPosts = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Search posts..."
+                  placeholder="Search posts by caption, username, or tags..."
                   className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -217,6 +259,13 @@ const AdminPosts = () => {
                 Search
               </button>
               <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-4 sm:px-6 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition flex-shrink-0 flex items-center gap-2"
+              >
+                <FiFilter className="w-4 h-4" />
+                Filters
+              </button>
+              <button
                 onClick={exportPosts}
                 className="px-4 sm:px-6 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex-shrink-0 flex items-center gap-2"
               >
@@ -225,20 +274,50 @@ const AdminPosts = () => {
               </button>
             </div>
 
-            {/* Filters */}
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={filters.category}
-                onChange={(e) => handleFilterChange('category', e.target.value)}
-                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Categories</option>
-                <option value="photo">Photo</option>
-                <option value="video">Video</option>
-                <option value="reel">Reel</option>
-                <option value="story">Story</option>
-              </select>
-            </div>
+            {/* Filters - Collapsible */}
+            {showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+                  <select
+                    value={filters.category}
+                    onChange={(e) => handleFilterChange('category', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Categories</option>
+                    <option value="photo">Photo</option>
+                    <option value="video">Video</option>
+                    <option value="reel">Reel</option>
+                    <option value="story">Story</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Sort By</label>
+                  <select
+                    value={filters.sortBy}
+                    onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="createdAt">Date Created</option>
+                    <option value="likes">Likes</option>
+                    <option value="comments">Comments</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Order</label>
+                  <select
+                    value={filters.sortOrder}
+                    onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="desc">Descending</option>
+                    <option value="asc">Ascending</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -315,6 +394,14 @@ const AdminPosts = () => {
                     />
                   </div>
 
+                  {/* Post Type Badge */}
+                  <div className="absolute top-2 right-2 z-10">
+                    <span className="bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                      {getPostTypeIcon(post.type)}
+                      {post.type}
+                    </span>
+                  </div>
+
                   {/* Post Image */}
                   <div className="relative aspect-square bg-gray-100 dark:bg-gray-700">
                     {post.media && post.media.length > 0 ? (
@@ -335,8 +422,9 @@ const AdminPosts = () => {
                         <FiImage className="w-12 h-12 text-gray-400" />
                       </div>
                     )}
-                    <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
-                      {post.media?.length || 0} media
+                    <div className="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                      <FiUsers className="w-3 h-3" />
+                      {post.media?.length || 0}
                     </div>
                   </div>
 
@@ -344,22 +432,22 @@ const AdminPosts = () => {
                   <div className="p-2 sm:p-3 lg:p-4">
                     <div className="flex items-center mb-2">
                       <img
-                        src={post.user?.avatar}
-                        alt={post.user?.username}
+                        src={post.author?.avatar}
+                        alt={post.author?.username}
                         className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover flex-shrink-0"
                       />
                       <div className="ml-1 sm:ml-2 min-w-0 flex-1">
                         <Link
-                          to={`/profile/${post.user?.username}`}
+                          to={`/profile/${post.author?.username}`}
                           className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white hover:text-blue-500 truncate block"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          @{post.user?.username}
+                          @{post.author?.username}
                         </Link>
                       </div>
                     </div>
 
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2 hidden sm:block">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
                       {post.caption || 'No caption'}
                     </p>
 
@@ -372,10 +460,18 @@ const AdminPosts = () => {
                         <FiMessageCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" />
                         {post.comments?.length || 0}
                       </div>
+                      <div className="flex items-center">
+                        <FiEye className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" />
+                        {post.views || 0}
+                      </div>
                     </div>
 
-                    <div className="mt-2 sm:mt-3 text-xs text-gray-400 hidden sm:block">
-                      {new Date(post.createdAt).toLocaleDateString()}
+                    <div className="mt-2 sm:mt-3 flex items-center justify-between text-xs text-gray-400">
+                      <span className="flex items-center gap-1">
+                        {getPrivacyIcon(post.privacy)}
+                        {post.privacy}
+                      </span>
+                      <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
                 </div>
@@ -483,6 +579,21 @@ const AdminPosts = () => {
                     </p>
                   </div>
 
+                  {selectedPost.tags && selectedPost.tags.length > 0 && (
+                    <div className="mb-3 sm:mb-4">
+                      <h4 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-2">
+                        Tags
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedPost.tags.map((tag, index) => (
+                          <span key={index} className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-xs">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="mb-3 sm:mb-4">
                     <h4 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-2">
                       Statistics
@@ -506,6 +617,24 @@ const AdminPosts = () => {
                           {selectedPost.comments?.length || 0}
                         </div>
                       </div>
+                      <div className="bg-gray-50 dark:bg-gray-700 p-2 sm:p-3 rounded-lg">
+                        <div className="flex items-center text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
+                          <FiEye className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                          Views
+                        </div>
+                        <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                          {selectedPost.views || 0}
+                        </div>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-700 p-2 sm:p-3 rounded-lg">
+                        <div className="flex items-center text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
+                          <FiBarChart2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                          Shares
+                        </div>
+                        <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                          {selectedPost.shares || 0}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -518,6 +647,20 @@ const AdminPosts = () => {
                         <span className="text-gray-500 dark:text-gray-400 flex-shrink-0">Posted:</span>
                         <span className="text-gray-900 dark:text-white text-right">
                           {new Date(selectedPost.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <span className="text-gray-500 dark:text-gray-400 flex-shrink-0">Privacy:</span>
+                        <span className="text-gray-900 dark:text-white text-right flex items-center gap-1">
+                          {getPrivacyIcon(selectedPost.privacy)}
+                          {selectedPost.privacy}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <span className="text-gray-500 dark:text-gray-400 flex-shrink-0">Type:</span>
+                        <span className="text-gray-900 dark:text-white text-right flex items-center gap-1">
+                          {getPostTypeIcon(selectedPost.type)}
+                          {selectedPost.type}
                         </span>
                       </div>
                       <div className="flex justify-between gap-2">

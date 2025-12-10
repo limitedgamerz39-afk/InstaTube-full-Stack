@@ -1,5 +1,7 @@
 import User from '../models/User.js';
 import Post from '../models/Post.js';
+import Short from '../models/Short.js';
+import LongVideo from '../models/LongVideo.js';
 import Message from '../models/Message.js';
 import Story from '../models/Story.js';
 import Notification from '../models/Notification.js';
@@ -10,6 +12,24 @@ import Product from '../models/Product.js';
 import Subscription from '../models/Subscription.js';
 import Revenue from '../models/Revenue.js';
 import Report from '../models/Report.js';
+import SecurityLog from '../models/SecurityLog.js';
+import mongoose from 'mongoose';
+
+// Helper function to log admin activities
+const logAdminActivity = async (userId, description, details = {}) => {
+  try {
+    await SecurityLog.create({
+      userId,
+      eventType: 'admin_action',
+      description,
+      severity: 'medium',
+      details,
+      ipAddress: 'SYSTEM', // This would typically come from req.ip
+    });
+  } catch (error) {
+    console.error('Failed to log admin activity:', error);
+  }
+};
 
 // @desc    Get dashboard statistics
 // @route   GET /api/admin/stats
@@ -340,6 +360,12 @@ export const deleteUser = async (req, res) => {
     // Delete user
     await user.deleteOne();
 
+    // Log admin activity
+    await logAdminActivity(req.user._id, `Deleted user ${user.username}`, {
+      deletedUserId: user._id,
+      deletedUsername: user.username,
+    });
+
     res.status(200).json({
       success: true,
       message: 'User deleted successfully',
@@ -376,6 +402,13 @@ export const deletePost = async (req, res) => {
 
     await post.deleteOne();
 
+    // Log admin activity
+    await logAdminActivity(req.user._id, `Deleted post by ${post.author}`, {
+      deletedPostId: post._id,
+      postAuthor: post.author,
+      postCaption: post.caption,
+    });
+
     res.status(200).json({
       success: true,
       message: 'Post deleted successfully',
@@ -405,6 +438,12 @@ export const toggleBanUser = async (req, res) => {
     user.isBanned = !user.isBanned;
     user.bannedAt = user.isBanned ? new Date() : null;
     await user.save();
+
+    // Log admin activity
+    await logAdminActivity(req.user._id, `${user.isBanned ? 'Banned' : 'Unbanned'} user ${user.username}`, {
+      userId: user._id,
+      username: user.username,
+    });
 
     res.status(200).json({
       success: true,
@@ -436,6 +475,12 @@ export const toggleVerifyUser = async (req, res) => {
     user.isVerified = !user.isVerified;
     user.verifiedAt = user.isVerified ? new Date() : null;
     await user.save();
+
+    // Log admin activity
+    await logAdminActivity(req.user._id, `${user.isVerified ? 'Verified' : 'Unverified'} user ${user.username}`, {
+      userId: user._id,
+      username: user.username,
+    });
 
     res.status(200).json({
       success: true,
@@ -490,6 +535,14 @@ export const changeUserRole = async (req, res) => {
     
     // Save the user to trigger the pre-save middleware that handles role-specific features
     await user.save();
+    
+    // Log admin activity
+    await logAdminActivity(req.user._id, `Changed user role for ${user.username} from ${previousRole} to ${role}`, {
+      userId: user._id,
+      username: user.username,
+      previousRole,
+      newRole: role,
+    });
     
     res.status(200).json({
       success: true,
@@ -552,6 +605,40 @@ export const getReports = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    // Populate reported content details
+    for (let report of reports) {
+      if (report.reportedType === 'post') {
+        try {
+          // Try to populate from different post collections
+          let post = await Post.findById(report.reportedId)
+            .populate('author', 'username fullName avatar');
+          
+          if (!post) {
+            post = await Short.findById(report.reportedId)
+              .populate('author', 'username fullName avatar');
+          }
+          
+          if (!post) {
+            post = await LongVideo.findById(report.reportedId)
+              .populate('author', 'username fullName avatar');
+          }
+          
+          if (post) {
+            // Add reported content directly to the report object
+            report.reportedContent = {
+              _id: post._id,
+              title: post.title || post.caption || 'Untitled',
+              author: post.author,
+              thumbnail: post.thumbnail || (post.media && post.media[0] ? post.media[0].url : null),
+              createdAt: post.createdAt ? new Date(post.createdAt).toISOString() : null
+            };
+          }
+        } catch (err) {
+          console.error('Error populating reported post:', err);
+        }
+      }
+    }
+
     const total = await Report.countDocuments(filter);
 
     res.status(200).json({
@@ -594,6 +681,13 @@ export const resolveReport = async (req, res) => {
 
     await report.save();
 
+    // Log admin activity
+    await logAdminActivity(req.user._id, `Resolved report #${report._id}`, {
+      reportId: report._id,
+      reportedItemType: report.reportedType,
+      actionTaken,
+    });
+
     res.status(200).json({
       success: true,
       message: 'Report resolved successfully',
@@ -629,6 +723,12 @@ export const dismissReport = async (req, res) => {
 
     await report.save();
 
+    // Log admin activity
+    await logAdminActivity(req.user._id, `Dismissed report #${report._id}`, {
+      reportId: report._id,
+      reportedItemType: report.reportedType,
+    });
+
     res.status(200).json({
       success: true,
       message: 'Report dismissed successfully',
@@ -662,8 +762,19 @@ export const getReportDetails = async (req, res) => {
     let reportedContent = null;
     switch (report.reportedType) {
       case 'post':
+        // Try to find in different post collections
         reportedContent = await Post.findById(report.reportedId)
           .populate('author', 'username fullName avatar');
+        
+        if (!reportedContent) {
+          reportedContent = await Short.findById(report.reportedId)
+            .populate('author', 'username fullName avatar');
+        }
+        
+        if (!reportedContent) {
+          reportedContent = await LongVideo.findById(report.reportedId)
+            .populate('author', 'username fullName avatar');
+        }
         break;
       case 'comment':
         reportedContent = await Comment.findById(report.reportedId)
@@ -692,12 +803,13 @@ export const getReportDetails = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error('Error in getReportDetails:', error);
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || 'Internal server error',
     });
   }
-};
+}
 
 // @desc    Search users/posts
 // @route   GET /api/admin/search
@@ -803,7 +915,6 @@ export const declineRoleRequest = async (req, res) => {
     }
 
     user.roleUpgradeRequested = false;
-    // Optionally store decline reason
     user.roleUpgradeReason = '';
     await user.save();
 
@@ -906,14 +1017,43 @@ export const getSystemHealth = async (req, res) => {
     const memoryUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
     
-    // Get database connection status
+    // Get database connection status and stats
     const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
     
-    // Get user count
-    const userCount = await User.countDocuments();
+    // Get database stats
+    let dbStats = {};
+    if (mongoose.connection.readyState === 1) {
+      try {
+        // Get database stats
+        const dbStatsResult = await mongoose.connection.db.stats();
+        dbStats = {
+          collections: dbStatsResult.collections,
+          objects: dbStatsResult.objects,
+          dataSize: dbStatsResult.dataSize,
+          storageSize: dbStatsResult.storageSize,
+          indexes: dbStatsResult.indexes,
+          indexSize: dbStatsResult.indexSize,
+        };
+      } catch (dbError) {
+        console.error('Error getting database stats:', dbError);
+        dbStats = { error: 'Could not retrieve database stats' };
+      }
+    }
     
-    // Get post count
-    const postCount = await Post.countDocuments();
+    // Get collection counts
+    const collectionStats = {
+      users: await User.countDocuments(),
+      posts: await Post.countDocuments(),
+      comments: await Comment.countDocuments(),
+      messages: await Message.countDocuments(),
+      stories: await Story.countDocuments(),
+      groups: await Group.countDocuments(),
+      communityPosts: await CommunityPost.countDocuments(),
+      products: await Product.countDocuments(),
+      subscriptions: await Subscription.countDocuments(),
+      revenues: await Revenue.countDocuments(),
+      reports: await Report.countDocuments(),
+    };
     
     // Get recent error count (last 24 hours)
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -935,16 +1075,22 @@ export const getSystemHealth = async (req, res) => {
         },
         database: {
           status: dbStatus,
+          stats: dbStats,
         },
+        collectionStats: collectionStats,
         application: {
-          users: userCount,
-          posts: postCount,
+          users: collectionStats.users,
+          posts: collectionStats.posts,
+          comments: collectionStats.comments,
+          messages: collectionStats.messages,
+          stories: collectionStats.stories,
           recentErrors: errorCount,
         },
         timestamp: new Date().toISOString(),
       },
     });
   } catch (error) {
+    console.error('System health error:', error);
     res.status(500).json({
       success: false,
       message: error.message,
@@ -964,6 +1110,33 @@ export const getSystemLogs = async (req, res) => {
         logs: [],
         message: 'Log functionality not yet implemented',
       },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// @desc    Get recent admin activities
+// @route   GET /api/admin/recent-activities
+// @access  Private/Admin
+export const getRecentAdminActivities = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    
+    // Get recent security events with admin_action type
+    const recentActivities = await SecurityLog.find({
+      eventType: 'admin_action'
+    })
+      .populate('userId', 'username fullName avatar')
+      .sort({ createdAt: -1 })
+      .limit(limit);
+    
+    res.status(200).json({
+      success: true,
+      data: recentActivities,
     });
   } catch (error) {
     res.status(500).json({

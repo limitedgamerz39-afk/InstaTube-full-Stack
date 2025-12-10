@@ -34,6 +34,11 @@ export const createPlaylist = async (req, res) => {
 export const getUserPlaylists = async (req, res) => {
   try {
     const { userId } = req.params;
+    
+    // Validate userId
+    if (!userId || userId === 'undefined') {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
 
     const query = { creator: userId };
     if (!req.user || req.user._id.toString() !== userId) {

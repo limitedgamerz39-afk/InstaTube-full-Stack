@@ -23,7 +23,7 @@ export const createStory = async (req, res) => {
       size: req.file.size
     });
     
-    const result = await uploadToStorage(req.file.buffer, 'friendflix/stories', req.file.originalname);
+    const result = await uploadToStorage(req.file.buffer, 'd4dhub/stories', req.file.originalname);
     console.log('✅ Story upload successful', result);
 
     const mediaType = req.file.mimetype.startsWith('video') ? 'video' : 'image';

@@ -37,7 +37,7 @@ export default defineConfig({
         theme_color: '#8b5cf6',
         background_color: '#ffffff',
         display: 'standalone',
-        icon: 'src/assets/logo.png',
+        icon: 'public/logo_icon.png',
         start_url: '/',
         shortcuts: [
           {
@@ -111,6 +111,7 @@ export default defineConfig({
     port: 5001,
     host: true,
     strictPort: true,
+    allowedHosts: ['d4dhub.com', 'api.d4dhub.com', 'www.d4dhub.com'],
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
@@ -120,7 +121,11 @@ export default defineConfig({
       '/socket.io': {
         target: 'http://localhost:5000',
         changeOrigin: true,
-        ws: true
+        ws: true,
+        secure: false,
+        // Add timeout and retry options
+        timeout: 30000,
+        proxyTimeout: 30000
       }
     }
   },

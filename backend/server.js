@@ -45,7 +45,8 @@ import liveStreamRoutes from './routes/liveStreamRoutes.js';
 import videoCallRoutes from './routes/videoCallRoutes.js';
 import audioCallRoutes from './routes/audioCallRoutes.js';
 import monetizationRoutes from './routes/monetizationRoutes.js';
-import achievementRoutes from './routes/achievementRoutes.js'; // Add this line
+import achievementRoutes from './routes/achievementRoutes.js';
+import recommendationRoutes from './routes/recommendationRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -102,6 +103,10 @@ app.use(compression());
 
 // ✅ Set server timeout to handle large file uploads
 server.setTimeout(30 * 60 * 1000); // 30 minutes
+
+// Add keep alive timeout as well
+server.keepAliveTimeout = 30 * 60 * 1000; // 30 minutes
+server.headersTimeout = 31 * 60 * 1000; // 31 minutes (should be longer than keepAliveTimeout)
 
 // ✅ Security & Logging
 app.use(helmet());
@@ -164,6 +169,10 @@ const allowedOrigins = [
   // Production domains
   'https://YOUR_DOMAIN.com',
   'https://www.YOUR_DOMAIN.com',
+  // D4D Hub domains
+  'https://d4dhub.com',
+  'https://api.d4dhub.com',
+  'https://www.d4dhub.com',
 ];
 
 app.use(
@@ -199,7 +208,9 @@ app.use(
           // Allow your public IP
           /^http:\/\/YOUR_PUBLIC_IP.*$/.test(origin) ||
           // Allow any IP on ports 5001, 5002, 3000 (for self-hosting)
-          /^http:\/\/\d+\.\d+\.\d+\.\d+:(5001|5002|3000)$/.test(origin)
+          /^http:\/\/\d+\.\d+\.\d+\.\d+:(5001|5002|3000)$/.test(origin) ||
+          // Allow d4dhub.com domains
+          /^https:\/\/.*d4dhub\.com$/.test(origin)
         ) {
           callback(null, true);
         } else {
@@ -227,9 +238,9 @@ app.use((req, res, next) => {
   const acceptHeader = req.headers['accept'];
   let version = 'v1'; // default version
   
-  // Check if version is specified in Accept header (e.g., application/vnd.friendflix.v2+json)
-  if (acceptHeader && acceptHeader.includes('application/vnd.friendflix.')) {
-    const versionMatch = acceptHeader.match(/application\/vnd\.friendflix\.v(\d+)\+json/);
+  // Check if version is specified in Accept header (e.g., application/vnd.d4dhub.v2+json)
+  if (acceptHeader && acceptHeader.includes('application/vnd.d4dhub.')) {
+    const versionMatch = acceptHeader.match(/application\/vnd\.d4dhub\.v(\d+)\+json/);
     if (versionMatch && versionMatch[1]) {
       version = `v${versionMatch[1]}`;
     }
@@ -311,6 +322,7 @@ app.use('/api/v1/videocall', videoCallRoutes);
 app.use('/api/v1/audiocall', audioCallRoutes);
 app.use('/api/v1/monetization', monetizationRoutes);
 app.use('/api/v1/achievements', achievementRoutes);
+app.use('/api/v1/recommendations', recommendationRoutes);
 
 // ✅ Backward compatibility - non-versioned routes (will default to v1)
 app.use('/api/auth', authRoutes);
@@ -341,13 +353,14 @@ app.use('/api/videocall', videoCallRoutes);
 app.use('/api/audiocall', audioCallRoutes);
 app.use('/api/monetization', monetizationRoutes);
 app.use('/api/achievements', achievementRoutes);
+app.use('/api/recommendations', recommendationRoutes);
 
 // ✅ Error handling
 app.use(notFound);
 app.use(errorHandler);
 
 // ✅ Start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000; // Changed default from 3000 to 5000 to match .env
 
 // ✅ HTTPS enforcement in production
 if (process.env.NODE_ENV === 'production') {

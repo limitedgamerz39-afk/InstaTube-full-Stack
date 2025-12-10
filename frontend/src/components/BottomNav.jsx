@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { notificationAPI, messageAPI } from '../services/api';
 import socketService from '../services/socket';
@@ -14,10 +14,12 @@ import {
 } from 'react-icons/ai';
 import { BsCompass, BsCompassFill, BsFilm } from 'react-icons/bs';
 import { FiSearch } from 'react-icons/fi';
+import { FaVideo } from 'react-icons/fa';
 
 const BottomNav = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
@@ -124,15 +126,23 @@ const BottomNav = () => {
             )}
           </Link>
 
-          {/* Upload */}
-          <Link
-            to="/upload"
-            className="flex flex-col items-center justify-center flex-1 h-full"
+          {/* Upload - Direct to Mobile Shorts Recorder on Mobile */}
+          <div 
+            onClick={() => {
+              // Check if on mobile device
+              const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+              if (isMobile) {
+                navigate('/shorts/mobile');
+              } else {
+                navigate('/upload');
+              }
+            }}
+            className="flex flex-col items-center justify-center flex-1 h-full cursor-pointer"
           >
             <div className="bg-gradient-primary p-1.5 sm:p-2 rounded-xl sm:rounded-2xl shadow-glow-primary hover:shadow-glow-lg transition-all duration-300 hover:scale-110">
               <AiOutlinePlusSquare size={20} className="text-white sm:w-6 sm:h-6" />
             </div>
-          </Link>
+          </div>
 
           {/* Messages */}
           <Link
@@ -162,10 +172,10 @@ const BottomNav = () => {
           <Link
             to="/reels"
             className={`flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 relative ${
-              isActive('/reels') ? 'scale-110' : 'scale-100'
+              isActive('/reels') || isActive('/shorts/mobile') ? 'scale-110' : 'scale-100'
             }`}
           >
-            {isActive('/reels') ? (
+            {isActive('/reels') || isActive('/shorts/mobile') ? (
               <div className="relative">
                 <div className="absolute inset-0 bg-sunset-400 blur-xl opacity-60 rounded-full"></div>
                 <div className="relative bg-gradient-sunset p-2 rounded-xl sm:p-2.5 shadow-glow">

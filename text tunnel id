@@ -1,0 +1,10 @@
+Created tunnel d4dhub-tunnel with id d50bf727-3877-4589-aa05-1b8ab4c8102c
+PS C:\Users\BOSS> cloudflared tunnel login
+2025-12-10T06:34:21Z ERR You have an existing certificate at C:\Users\BOSS\.cloudflared\cert.pem which login would overwrite.
+If this is intentional, please move or delete that file then run this command again.
+
+PS C:\Users\BOSS> cloudflared tunnel list
+You can obtain more detailed information for each tunnel with `cloudflared tunnel info <name/uuid>`
+ID                                   NAME          CREATED              CONNECTIONS
+d50bf727-3877-4589-aa05-1b8ab4c8102c d4dhub-tunnel 2025-12-10T06:33:35Z
+PS C:\Users\BOSS>

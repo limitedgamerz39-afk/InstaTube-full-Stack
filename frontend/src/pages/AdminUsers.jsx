@@ -15,10 +15,23 @@ import {
   FiChevronRight,
   FiFilter,
   FiDownload,
+  FiPlus,
+  FiEdit2,
+  FiMail,
+  FiPhone,
+  FiMapPin,
+  FiCalendar,
+  FiActivity,
+  FiEye,
+  FiMoreVertical,
+  FiUserCheck,
+  FiUserX,
+  FiAward,
+  FiStar
 } from 'react-icons/fi';
 
 const AdminUsers = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,9 +46,13 @@ const AdminUsers = () => {
     isBanned: '',
     isVerified: '',
     isPremium: '',
+    sortBy: 'createdAt',
+    sortOrder: 'desc'
   });
   // State for role dropdowns
   const [openRoleDropdown, setOpenRoleDropdown] = useState(null);
+  const [userDetailsModal, setUserDetailsModal] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     if (user?.role === 'admin') {
@@ -92,6 +109,12 @@ const AdminUsers = () => {
       toast.success('User upgraded to creator');
       fetchRoleRequests();
       fetchUsers();
+      
+      // If we're approving the role request for the currently logged in user, 
+      // refresh their user data to reflect the change
+      if (userId === user._id) {
+        refreshUser();
+      }
     } catch (error) {
       toast.error('Failed to approve request');
     }
@@ -151,6 +174,12 @@ const AdminUsers = () => {
       await adminAPI.changeUserRole(userId, newRole);
       toast.success(`Role updated to ${newRole} for @${username}`);
       fetchUsers();
+      
+      // If we're changing the role of the currently logged in user, 
+      // refresh their user data to reflect the change
+      if (userId === user._id) {
+        refreshUser();
+      }
     } catch (error) {
       toast.error('Failed to change user role: ' + (error.response?.data?.message || error.message));
       console.error(error);
@@ -279,13 +308,56 @@ const AdminUsers = () => {
     }
   };
 
+  const viewUserDetails = async (userId) => {
+    try {
+      const response = await adminAPI.getUserDetails(userId);
+      setUserDetailsModal(response.data.data);
+    } catch (error) {
+      toast.error('Failed to load user details');
+      console.error(error);
+    }
+  };
+
+  const closeUserDetails = () => {
+    setUserDetailsModal(null);
+  };
+
   // Check if user is admin
   if (!user || user.role !== 'admin') {
     return <Navigate to="/" replace />;
   }
 
+  // Role badges
+  const getRoleBadge = (role) => {
+    const roleStyles = {
+      admin: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      creator: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+      business: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      user: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+    };
+    
+    return (
+      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${roleStyles[role] || roleStyles.user}`}>
+        {role.charAt(0).toUpperCase() + role.slice(1)}
+      </span>
+    );
+  };
+
+  // Status badges
+  const getStatusBadge = (isBanned) => {
+    return isBanned ? (
+      <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+        Banned
+      </span>
+    ) : (
+      <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+        Active
+      </span>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -309,7 +381,7 @@ const AdminUsers = () => {
             </div>
           </div>
 
-          {/* Search and Filters */}
+          {/* Search and Actions */}
           <div className="mt-4 sm:mt-6 space-y-4">
             <div className="flex flex-col md:flex-row gap-2">
               <div className="flex-1 relative">
@@ -319,7 +391,7 @@ const AdminUsers = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Search users..."
+                  placeholder="Search users by username, email, or name..."
                   className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -330,6 +402,13 @@ const AdminUsers = () => {
                 Search
               </button>
               <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-4 sm:px-6 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition flex-shrink-0 flex items-center gap-2"
+              >
+                <FiFilter className="w-4 h-4" />
+                Filters
+              </button>
+              <button
                 onClick={exportUsers}
                 className="px-4 sm:px-6 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex-shrink-0 flex items-center gap-2"
               >
@@ -338,50 +417,64 @@ const AdminUsers = () => {
               </button>
             </div>
 
-            {/* Filters */}
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={filters.role}
-                onChange={(e) => handleFilterChange('role', e.target.value)}
-                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Roles</option>
-                <option value="user">User</option>
-                <option value="creator">Creator</option>
-                <option value="business">Business</option>
-                <option value="admin">Admin</option>
-              </select>
+            {/* Filters - Collapsible */}
+            {showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
+                  <select
+                    value={filters.role}
+                    onChange={(e) => handleFilterChange('role', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Roles</option>
+                    <option value="user">User</option>
+                    <option value="creator">Creator</option>
+                    <option value="business">Business</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
 
-              <select
-                value={filters.isBanned}
-                onChange={(e) => handleFilterChange('isBanned', e.target.value)}
-                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Status</option>
-                <option value="true">Banned</option>
-                <option value="false">Active</option>
-              </select>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                  <select
+                    value={filters.isBanned}
+                    onChange={(e) => handleFilterChange('isBanned', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Status</option>
+                    <option value="true">Banned</option>
+                    <option value="false">Active</option>
+                  </select>
+                </div>
 
-              <select
-                value={filters.isVerified}
-                onChange={(e) => handleFilterChange('isVerified', e.target.value)}
-                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Verification</option>
-                <option value="true">Verified</option>
-                <option value="false">Unverified</option>
-              </select>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Verification</label>
+                  <select
+                    value={filters.isVerified}
+                    onChange={(e) => handleFilterChange('isVerified', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Verification</option>
+                    <option value="true">Verified</option>
+                    <option value="false">Unverified</option>
+                  </select>
+                </div>
 
-              <select
-                value={filters.isPremium}
-                onChange={(e) => handleFilterChange('isPremium', e.target.value)}
-                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Subscription</option>
-                <option value="true">Premium</option>
-                <option value="false">Regular</option>
-              </select>
-            </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Subscription</label>
+                  <select
+                    value={filters.isPremium}
+                    onChange={(e) => handleFilterChange('isPremium', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Subscription</option>
+                    <option value="true">Premium</option>
+                    <option value="false">Regular</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -390,7 +483,10 @@ const AdminUsers = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold">Role Upgrade Requests</h3>
+            <h3 className="font-semibold flex items-center gap-2">
+              <FiAward className="text-yellow-500" />
+              Role Upgrade Requests
+            </h3>
             <span className="text-sm text-gray-500">{roleRequests.length} pending</span>
           </div>
           {roleRequests.length === 0 ? (
@@ -398,9 +494,9 @@ const AdminUsers = () => {
           ) : (
             <div className="space-y-3">
               {roleRequests.map((u) => (
-                <div key={u._id} className="flex items-center justify-between">
+                <div key={u._id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <img src={u.avatar} alt={u.username} className="w-8 h-8 rounded-full" />
+                    <img src={u.avatar} alt={u.username} className="w-10 h-10 rounded-full" />
                     <div>
                       <p className="text-sm font-semibold">@{u.username}</p>
                       {u.roleUpgradeReason && (
@@ -409,8 +505,18 @@ const AdminUsers = () => {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => handleApproveRequest(u._id)} className="px-3 py-1 bg-green-100 text-green-700 rounded">Approve</button>
-                    <button onClick={() => handleDeclineRequest(u._id)} className="px-3 py-1 bg-red-100 text-red-700 rounded">Decline</button>
+                    <button 
+                      onClick={() => handleApproveRequest(u._id)} 
+                      className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition"
+                    >
+                      Approve
+                    </button>
+                    <button 
+                      onClick={() => handleDeclineRequest(u._id)} 
+                      className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition"
+                    >
+                      Decline
+                    </button>
                   </div>
                 </div>
               ))}
@@ -493,7 +599,7 @@ const AdminUsers = () => {
                         User
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Email
+                        Contact
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Role
@@ -538,6 +644,9 @@ const AdminUsers = () => {
                                 {userData.isVerified && (
                                   <FiCheckCircle className="w-4 h-4 text-blue-500 ml-1" />
                                 )}
+                                {userData.isPremium && (
+                                  <FiStar className="w-4 h-4 text-yellow-500 ml-1" />
+                                )}
                               </div>
                               <div className="text-sm text-gray-500 dark:text-gray-400">
                                 @{userData.username}
@@ -547,43 +656,39 @@ const AdminUsers = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900 dark:text-white">
-                            {userData.email}
+                            <div className="flex items-center">
+                              <FiMail className="w-4 h-4 mr-1 text-gray-400" />
+                              {userData.email}
+                            </div>
+                            {userData.phone && (
+                              <div className="flex items-center mt-1">
+                                <FiPhone className="w-4 h-4 mr-1 text-gray-400" />
+                                {userData.phone}
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              userData.role === 'admin'
-                                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                : userData.role === 'creator'
-                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-                                : userData.role === 'business'
-                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                            }`}
-                          >
-                            {userData.role}
-                          </span>
+                          {getRoleBadge(userData.role)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900 dark:text-white">
                             <div>Posts: {userData.posts?.length || 0}</div>
-                            <div>subscriber: {userData.subscriber?.length || 0}</div>
+                            <div>Subscribers: {userData.subscriber?.length || 0}</div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {userData.isBanned ? (
-                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                              Banned
-                            </span>
-                          ) : (
-                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                              Active
-                            </span>
-                          )}
+                          {getStatusBadge(userData.isBanned)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => viewUserDetails(userData._id)}
+                              className="p-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                              title="View details"
+                            >
+                              <FiEye className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={() =>
                                 handleToggleVerify(userData._id, userData.isVerified, userData.username)
@@ -692,13 +797,23 @@ const AdminUsers = () => {
                         {userData.isVerified && (
                           <FiCheckCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
                         )}
+                        {userData.isPremium && (
+                          <FiStar className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                        )}
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                         @{userData.username}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1 flex items-center">
+                        <FiMail className="w-3 h-3 mr-1" />
                         {userData.email}
                       </p>
+                      {userData.phone && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate flex items-center">
+                          <FiPhone className="w-3 h-3 mr-1" />
+                          {userData.phone}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -706,31 +821,15 @@ const AdminUsers = () => {
                   <div className="grid grid-cols-2 gap-3 mb-4">
                     <div className="bg-gray-50 dark:bg-gray-700 rounded p-2">
                       <p className="text-xs text-gray-500 dark:text-gray-400">Role</p>
-                      <span
-                        className={`inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded-full ${
-                          userData.role === 'admin'
-                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                            : userData.role === 'creator'
-                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-                            : userData.role === 'business'
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                            : 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'
-                        }`}
-                      >
-                        {userData.role}
-                      </span>
+                      <div className="mt-1">
+                        {getRoleBadge(userData.role)}
+                      </div>
                     </div>
                     <div className="bg-gray-50 dark:bg-gray-700 rounded p-2">
                       <p className="text-xs text-gray-500 dark:text-gray-400">Status</p>
-                      <span
-                        className={`inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded-full ${
-                          userData.isBanned
-                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                            : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        }`}
-                      >
-                        {userData.isBanned ? 'Banned' : 'Active'}
-                      </span>
+                      <div className="mt-1">
+                        {getStatusBadge(userData.isBanned)}
+                      </div>
                     </div>
                     <div className="bg-gray-50 dark:bg-gray-700 rounded p-2">
                       <p className="text-xs text-gray-500 dark:text-gray-400">Posts</p>
@@ -739,7 +838,7 @@ const AdminUsers = () => {
                       </p>
                     </div>
                     <div className="bg-gray-50 dark:bg-gray-700 rounded p-2">
-                      <p className="text-xs text-gray-500 dark:text-gray-400">subscriber</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Subscribers</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">
                         {userData.subscriber?.length || 0}
                       </p>
@@ -748,6 +847,13 @@ const AdminUsers = () => {
 
                   {/* Action Buttons */}
                   <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => viewUserDetails(userData._id)}
+                      className="flex-1 min-w-[80px] px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg transition text-xs font-medium flex items-center justify-center gap-1"
+                    >
+                      <FiEye className="w-3 h-3" />
+                      View
+                    </button>
                     <button
                       onClick={() =>
                         handleToggleVerify(userData._id, userData.isVerified, userData.username)
@@ -843,6 +949,158 @@ const AdminUsers = () => {
           </>
         )}
       </div>
+
+      {/* User Details Modal */}
+      {userDetailsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">User Details</h3>
+                <button 
+                  onClick={closeUserDetails}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <FiXCircle className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="flex flex-col md:flex-row gap-6">
+                <div className="md:w-1/3">
+                  <img 
+                    src={userDetailsModal.avatar} 
+                    alt={userDetailsModal.username} 
+                    className="w-full rounded-xl object-cover"
+                  />
+                  <div className="mt-4 text-center">
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {userDetailsModal.fullName}
+                    </h4>
+                    <p className="text-gray-600 dark:text-gray-400">@{userDetailsModal.username}</p>
+                    {userDetailsModal.isVerified && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 mt-2">
+                        <FiCheckCircle className="w-3 h-3 mr-1" />
+                        Verified
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="md:w-2/3">
+                  <div className="space-y-4">
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-500 dark:text-gray-400">Contact Information</h5>
+                      <div className="mt-2 space-y-2">
+                        <div className="flex items-center text-sm text-gray-900 dark:text-white">
+                          <FiMail className="w-4 h-4 mr-2 text-gray-400" />
+                          {userDetailsModal.email}
+                        </div>
+                        {userDetailsModal.phone && (
+                          <div className="flex items-center text-sm text-gray-900 dark:text-white">
+                            <FiPhone className="w-4 h-4 mr-2 text-gray-400" />
+                            {userDetailsModal.phone}
+                          </div>
+                        )}
+                        {userDetailsModal.location && (
+                          <div className="flex items-center text-sm text-gray-900 dark:text-white">
+                            <FiMapPin className="w-4 h-4 mr-2 text-gray-400" />
+                            {userDetailsModal.location}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-500 dark:text-gray-400">Account Information</h5>
+                      <div className="mt-2 grid grid-cols-2 gap-3">
+                        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Role</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {userDetailsModal.role}
+                          </p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {userDetailsModal.isBanned ? 'Banned' : 'Active'}
+                          </p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Joined</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {new Date(userDetailsModal.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Last Active</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {userDetailsModal.lastActive 
+                              ? new Date(userDetailsModal.lastActive).toLocaleDateString()
+                              : 'Never'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-500 dark:text-gray-400">Statistics</h5>
+                      <div className="mt-2 grid grid-cols-3 gap-3">
+                        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-center">
+                          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {userDetailsModal.posts?.length || 0}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Posts</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-center">
+                          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {userDetailsModal.subscriber?.length || 0}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Subscribers</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-center">
+                          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {userDetailsModal.subscribed?.length || 0}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Subscribed</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => handleToggleBan(userDetailsModal._id, userDetailsModal.isBanned, userDetailsModal.username)}
+                  className={`px-4 py-2 rounded-lg font-medium ${
+                    userDetailsModal.isBanned
+                      ? 'bg-green-500 hover:bg-green-600 text-white'
+                      : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                  }`}
+                >
+                  {userDetailsModal.isBanned ? 'Unban User' : 'Ban User'}
+                </button>
+                <button
+                  onClick={() => handleToggleVerify(userDetailsModal._id, userDetailsModal.isVerified, userDetailsModal.username)}
+                  className={`px-4 py-2 rounded-lg font-medium ${
+                    userDetailsModal.isVerified
+                      ? 'bg-gray-500 hover:bg-gray-600 text-white'
+                      : 'bg-blue-500 hover:bg-blue-600 text-white'
+                  }`}
+                >
+                  {userDetailsModal.isVerified ? 'Remove Verification' : 'Verify User'}
+                </button>
+                <button
+                  onClick={() => handleDeleteUser(userDetailsModal._id, userDetailsModal.username)}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium"
+                >
+                  Delete User
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

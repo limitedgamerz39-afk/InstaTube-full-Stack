@@ -69,6 +69,14 @@ export const getUserProfile = async (req, res) => {
   try {
     const { username } = req.params;
     
+    // Validate username
+    if (!username || username === 'undefined') {
+      return res.status(400).json({
+        success: false,
+        message: 'Username is required',
+      });
+    }
+    
     // Try to get cached data using enhanced cache
     const cachedUser = await cache.get(`user:${username}`);
     if (cachedUser) {
@@ -116,6 +124,11 @@ export const getUserProfile = async (req, res) => {
 // @access  Private
 export const updateProfile = async (req, res) => {
   try {
+    // Debug logging to see what we're receiving
+    console.log('Received profile update request:');
+    console.log('Body:', req.body);
+    console.log('Files:', req.files);
+    
     const user = await User.findById(req.user._id);
 
     if (!user) {
@@ -126,10 +139,64 @@ export const updateProfile = async (req, res) => {
     }
 
     // Update fields
-    user.fullName = req.body.fullName || user.fullName;
-    user.username = req.body.username || user.username;
-    user.bio = req.body.bio !== undefined ? req.body.bio : user.bio;
-    user.gender = req.body.gender || user.gender;
+    if (req.body.fullName !== undefined) {
+      console.log('Updating fullName:', req.body.fullName);
+      user.fullName = req.body.fullName;
+    }
+    
+    // Handle username change with 15-day restriction
+    if (req.body.username !== undefined && req.body.username !== user.username) {
+      console.log('Attempting username change from', user.username, 'to', req.body.username);
+      // Check if username was changed within the last 15 days
+      if (user.usernameLastChanged) {
+        const daysSinceLastChange = (Date.now() - user.usernameLastChanged.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSinceLastChange < 15) {
+          return res.status(400).json({
+            success: false,
+            message: 'You can\'t change your username before 15 days after the last change.',
+          });
+        }
+      }
+      
+      // Check if username is already taken
+      const existingUser = await User.findOne({ username: req.body.username });
+      if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username is already taken. Please choose another one.',
+        });
+      }
+      
+      // Update username and record change date
+      user.username = req.body.username;
+      user.usernameLastChanged = Date.now();
+    }
+    
+    if (req.body.bio !== undefined) {
+      console.log('Updating bio:', req.body.bio);
+      user.bio = req.body.bio;
+    }
+    if (req.body.gender !== undefined) {
+      console.log('Updating gender:', req.body.gender);
+      user.gender = req.body.gender;
+    }
+    if (req.body.website !== undefined) {
+      console.log('Updating website:', req.body.website);
+      user.website = req.body.website;
+    }
+    
+    // Update social links if provided
+    if (req.body.socialLinks !== undefined) {
+      console.log('Updating socialLinks:', req.body.socialLinks);
+      try {
+        const socialLinks = JSON.parse(req.body.socialLinks);
+        user.socialLinks = socialLinks;
+      } catch (err) {
+        console.log('Invalid socialLinks format');
+        // Reset to empty object if parsing fails
+        user.socialLinks = {};
+      }
+    }
 
     // Handle avatar upload
     if (req.files && req.files.avatar && req.files.avatar[0]) {
@@ -137,7 +204,7 @@ export const updateProfile = async (req, res) => {
       console.log('📤 Uploading avatar to MinIO...');
       console.log('File size:', file.size, 'bytes');
       console.log('File type:', file.mimetype);
-      const result = await uploadToStorage(file.buffer, 'friendflix/avatars', file.originalname);
+      const result = await uploadToStorage(file.buffer, 'd4dhub/avatars', file.originalname);
       console.log('✅ Avatar upload successful:', result.secure_url);
       user.avatar = result.secure_url;
     }
@@ -148,12 +215,22 @@ export const updateProfile = async (req, res) => {
       console.log('📤 Uploading cover image to MinIO...');
       console.log('File size:', file.size, 'bytes');
       console.log('File type:', file.mimetype);
-      const result = await uploadToStorage(file.buffer, 'friendflix/covers', file.originalname);
+      const result = await uploadToStorage(file.buffer, 'd4dhub/covers', file.originalname);
       console.log('✅ Cover upload successful:', result.secure_url);
       user.coverImage = result.secure_url;
     }
 
+    console.log('Saving user with updated data:', {
+      fullName: user.fullName,
+      username: user.username,
+      bio: user.bio,
+      gender: user.gender,
+      website: user.website,
+      socialLinks: user.socialLinks
+    });
+    
     const updatedUser = await user.save();
+    console.log('User saved successfully:', updatedUser._id);
 
     // Clear cache for this user using enhanced cache
     await cache.del(`user:${user.username}`);
@@ -179,36 +256,51 @@ export const updateProfile = async (req, res) => {
 // @access  Private
 export const followUser = async (req, res) => {
   try {
-    const userToSubscribe = await User.findById(req.params.id);
-    const currentUser = await User.findById(req.user._id);
-
-    if (!userToSubscribe) {
-      return res.status(404).json({
+    const { id } = req.params;
+    
+    // Validate user ID format
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      console.log(`Invalid user ID format: ${id}`);
+      return res.status(400).json({
         success: false,
-        message: 'User not found',
+        message: 'Invalid user ID format',
       });
     }
-
-    if (req.params.id === req.user._id.toString()) {
+    
+    // Check if trying to subscribe to self
+    if (id === req.user._id.toString()) {
+      console.log(`User ${req.user._id} attempted to subscribe to themselves`);
       return res.status(400).json({
         success: false,
         message: 'You cannot subscribe to yourself',
       });
     }
 
-    const isSubscribed = currentUser.subscribed.includes(req.params.id);
+    const userToSubscribe = await User.findById(id);
+    const currentUser = await User.findById(req.user._id);
+
+    if (!userToSubscribe) {
+      console.log(`User not found with ID: ${id}`);
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    const isSubscribed = currentUser.subscribed.includes(id);
 
     if (isSubscribed) {
       // Unsubscribe
       currentUser.subscribed = currentUser.subscribed.filter(
-        (id) => id.toString() !== req.params.id
+        (userId) => userId.toString() !== id
       );
       userToSubscribe.subscriber = userToSubscribe.subscriber.filter(
-        (id) => id.toString() !== req.user._id.toString()
+        (userId) => userId.toString() !== req.user._id.toString()
       );
 
       await currentUser.save();
       await userToSubscribe.save();
+      console.log(`User ${req.user._id} unsubscribed from user ${id}`);
 
       res.status(200).json({
         success: true,
@@ -217,11 +309,12 @@ export const followUser = async (req, res) => {
       });
     } else {
       // Subscribe
-      currentUser.subscribed.push(req.params.id);
+      currentUser.subscribed.push(id);
       userToSubscribe.subscriber.push(req.user._id);
 
       await currentUser.save();
       await userToSubscribe.save();
+      console.log(`User ${req.user._id} subscribed to user ${id}`);
 
       // Create notification
       const notification = await Notification.create({
@@ -256,6 +349,7 @@ export const followUser = async (req, res) => {
     await cache.del(`suggestions:${currentUser._id}`);
     console.log(`🧹 Cache cleared for users: ${userToSubscribe.username}, ${currentUser.username}`);
   } catch (error) {
+    console.error('Subscribe/Unsubscribe error:', error);
     res.status(500).json({
       success: false,
       message: error.message,
@@ -346,14 +440,15 @@ export const getUserSuggestions = async (req, res) => {
 
     const currentUser = await User.findById(req.user._id);
 
+    // Increase limit for more diverse suggestions
     const suggestions = await User.find({
       _id: { $nin: [...currentUser.subscribed, currentUser._id] },
     })
       .select('username fullName avatar bio subscriber')
-      .limit(5);
+      .limit(10); // Increased from 5 to 10 for better UX
 
-    // Cache the suggestions for 10 minutes using enhanced cache
-    await cache.set(`suggestions:${req.user._id}`, suggestions, 600);
+    // Cache the suggestions for 30 minutes (increased from 10 minutes)
+    await cache.set(`suggestions:${req.user._id}`, suggestions, 1800);
 
     res.status(200).json({
       success: true,
@@ -364,6 +459,88 @@ export const getUserSuggestions = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+// @desc    Get user's subscribers
+// @route   GET /api/users/:username/subscribers
+// @access  Private
+export const getUserSubscribers = async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    const user = await User.findOne({ username })
+      .populate('subscriber', 'username fullName avatar');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+    
+    // Add subscription status for each subscriber
+    const subscribersWithStatus = await Promise.all(
+      user.subscriber.map(async (subscriber) => {
+        const isSubscribed = user.subscribed.includes(subscriber._id);
+        return {
+          ...subscriber.toObject(),
+          isSubscribed
+        };
+      })
+    );
+    
+    res.json({
+      success: true,
+      data: subscribersWithStatus,
+    });
+  } catch (error) {
+    console.error('Error fetching subscribers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
+};
+
+// @desc    Get user's subscriptions
+// @route   GET /api/users/:username/subscriptions
+// @access  Private
+export const getUserSubscriptions = async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    const user = await User.findOne({ username })
+      .populate('subscribed', 'username fullName avatar');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+    
+    // Add subscription status for each subscribed user
+    const subscriptionsWithStatus = await Promise.all(
+      user.subscribed.map(async (subscribedUser) => {
+        const isSubscribed = user.subscriber.includes(subscribedUser._id);
+        return {
+          ...subscribedUser.toObject(),
+          isSubscribed
+        };
+      })
+    );
+    
+    res.json({
+      success: true,
+      data: subscriptionsWithStatus,
+    });
+  } catch (error) {
+    console.error('Error fetching subscriptions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
     });
   }
 };
@@ -383,7 +560,7 @@ export const requestRoleUpgrade = async (req, res) => {
     }
 
     // Check if user has already requested role upgrade
-    if (user.roleRequest && user.roleRequest.status === 'pending') {
+    if (user.roleUpgradeRequested) {
       return res.status(400).json({
         success: false,
         message: 'You have already requested a role upgrade. Please wait for approval.',
@@ -391,13 +568,9 @@ export const requestRoleUpgrade = async (req, res) => {
     }
 
     // Update user with role request
-    user.roleRequest = {
-      type: req.body.role || 'creator',
-      status: 'pending',
-      requestedAt: Date.now(),
-      message: req.body.message || '',
-    };
-
+    user.roleUpgradeRequested = true;
+    user.roleUpgradeReason = req.body.message || '';
+    
     await user.save();
 
     res.status(200).json({

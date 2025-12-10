@@ -15,6 +15,13 @@ const StoryHighlights = () => {
   }, [highlightId]);
 
   const fetchHighlight = async () => {
+    // Check if highlightId is available
+    if (!highlightId) {
+      console.error('Highlight ID is required');
+      navigate('/');
+      return;
+    }
+    
     try {
       setLoading(true);
       const response = await highlightAPI.getHighlight(highlightId);

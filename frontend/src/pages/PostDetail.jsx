@@ -18,6 +18,13 @@ const PostDetail = () => {
   }, [id]);
 
   const fetchPost = async () => {
+    // Check if id is available
+    if (!id) {
+      setError('Post ID is required');
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
       const response = await postAPI.getPost(id);

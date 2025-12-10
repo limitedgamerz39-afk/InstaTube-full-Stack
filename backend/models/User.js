@@ -12,6 +12,10 @@ const userSchema = new mongoose.Schema(
       minlength: [3, 'Username must be at least 3 characters'],
       maxlength: [30, 'Username cannot exceed 30 characters'],
     },
+    usernameLastChanged: {
+      type: Date,
+      default: null,
+    },
     email: {
       type: String,
       required: [true, 'Email is required'],
@@ -50,6 +54,38 @@ const userSchema = new mongoose.Schema(
       type: String,
       maxlength: [150, 'Bio cannot exceed 150 characters'],
       default: '',
+    },
+    website: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    socialLinks: {
+      twitter: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      instagram: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      youtube: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      linkedin: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      facebook: {
+        type: String,
+        trim: true,
+        default: '',
+      },
     },
     gender: {
       type: String,

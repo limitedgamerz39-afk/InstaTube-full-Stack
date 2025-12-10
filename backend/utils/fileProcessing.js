@@ -1,5 +1,15 @@
 import sharp from 'sharp';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import ffmpegStatic from 'ffmpeg-static';
+import ffprobeStatic from 'ffprobe-static';
+import { default as ffmpeg } from 'fluent-ffmpeg';
+
+// Set the paths for ffmpeg and ffprobe
+ffmpeg.setFfmpegPath(ffmpegStatic);
+ffmpeg.setFfprobePath(ffprobeStatic.path);
 
 // Strip EXIF data from images
 export const stripExifData = async (buffer) => {
@@ -90,9 +100,57 @@ export const scanForMaliciousContent = (buffer) => {
   };
 };
 
+// Extract video duration from buffer
+export const extractVideoDuration = async (fileBuffer) => {
+  // In a production environment with ffmpeg installed, you would use this implementation:
+  try {
+    // Create a temporary file from the buffer
+    const tempDir = os.tmpdir();
+    const tempFileName = `temp-video-${Date.now()}-${Math.random().toString(36).substring(7)}.tmp`;
+    const tempFilePath = path.join(tempDir, tempFileName);
+    
+    // Write buffer to temporary file
+    await fs.promises.writeFile(tempFilePath, fileBuffer);
+    
+    try {
+      // Dynamically import fluent-ffmpeg only when needed
+      const { default: ffmpeg } = await import('fluent-ffmpeg');
+      const { promisify } = await import('util');
+      
+      // Promisify the ffprobe function
+      const ffprobe = promisify(ffmpeg.ffprobe);
+      
+      // Extract metadata from the video file
+      const metadata = await ffprobe(tempFilePath);
+      
+      // Clean up temporary file
+      await fs.promises.unlink(tempFilePath);
+      
+      // Return the duration in seconds
+      return metadata.format.duration;
+    } catch (ffmpegError) {
+      // Clean up temporary file even if ffprobe fails
+      try {
+        await fs.promises.unlink(tempFilePath);
+      } catch (cleanupError) {
+        console.warn('Failed to clean up temporary file:', cleanupError);
+      }
+      
+      throw ffmpegError;
+    }
+  } catch (error) {
+    console.error('Error extracting video duration:', error);
+    
+    // Return null to indicate that we couldn't extract the duration
+    // The system will fall back to estimated durations
+    return null;
+  }
+};
+
 export default {
   stripExifData,
   generateSafeFilename,
   validateFileType,
-  scanForMaliciousContent
+  scanForMaliciousContent,
+  extractVideoDuration
 };

@@ -190,3 +190,29 @@ export const getTrendingPosts = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// @desc    Get suggested creators
+// @route   GET /api/explore/creators
+// @access  Private
+export const getSuggestedCreators = async (req, res) => {
+  try {
+    // Get top creators based on subscriber count, excluding current user
+    const creators = await User.find({ 
+      role: { $in: ['creator', 'admin'] } // Only get users with creator or admin roles
+    })
+      .select('username fullName avatar bio subscriber')
+      .sort({ subscriber: -1 })
+      .limit(20)
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      data: creators,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

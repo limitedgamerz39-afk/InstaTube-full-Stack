@@ -49,7 +49,7 @@ const Search = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [recentSearches, setRecentSearches] = useState([]);
   const [trendingSearches] = useState([
-    { term: 'friendflix', count: '12.5K', trending: true },
+    { term: 'D4D HUB', count: '12.5K', trending: true },
     { term: 'music', count: '8.2K', trending: false },
     { term: 'travel', count: '6.7K', trending: true },
     { term: 'food', count: '5.9K', trending: false },
@@ -109,12 +109,12 @@ const Search = () => {
 
   // Save recent searches to localStorage
   const saveRecentSearch = useCallback((searchTerm) => {
-    if (!searchTerm.trim()) return;
+    if (!searchTerm || !searchTerm.trim()) return;
     
     setRecentSearches(prev => {
       const updated = [
         { term: searchTerm, timestamp: Date.now() },
-        ...prev.filter(item => item.term.toLowerCase() !== searchTerm.toLowerCase())
+        ...prev.filter(item => item.term && item.term.toLowerCase() !== searchTerm.toLowerCase())
       ].slice(0, 8);
       
       localStorage.setItem('recentSearches', JSON.stringify(updated));

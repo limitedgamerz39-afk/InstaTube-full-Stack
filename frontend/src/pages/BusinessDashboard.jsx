@@ -56,13 +56,29 @@ const BusinessDashboard = () => {
                 Manage your business profile and track performance
               </p>
             </div>
-            <Link
-              to="/business/profile"
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition flex items-center gap-2"
-            >
-              <FiSettings className="w-4 h-4" />
-              <span>Profile Settings</span>
-            </Link>
+            <div className="flex space-x-3">
+              <Link
+                to="/business/products"
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition flex items-center gap-2"
+              >
+                <FiShoppingBag className="w-4 h-4" />
+                <span>Products</span>
+              </Link>
+              <Link
+                to="/business/analytics"
+                className="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary-dark transition flex items-center gap-2"
+              >
+                <FiBarChart2 className="w-4 h-4" />
+                <span>Analytics</span>
+              </Link>
+              <Link
+                to="/business/profile"
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition flex items-center gap-2"
+              >
+                <FiSettings className="w-4 h-4" />
+                <span>Profile Settings</span>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

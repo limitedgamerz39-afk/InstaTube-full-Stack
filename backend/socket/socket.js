@@ -21,6 +21,11 @@ const initializeSocket = (server) => {
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
     },
+    // Add connection timeout settings
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    upgradeTimeout: 30000,
+    transports: ['websocket', 'polling'], // Allow both websocket and polling
   });
 
   // Store online users

@@ -46,12 +46,7 @@ const postSchema = new mongoose.Schema({
       ref: 'Comment',
     },
   ],
-  category: {
-    type: String,
-    enum: ['image', 'short', 'long'],
-    default: 'image',
-    index: true,
-  },
+  // Removed category field since we're separating content types
   visibility: {
     type: String,
     enum: ['public', 'private', 'unlisted'],
@@ -246,12 +241,12 @@ postSchema.index({ author: 1 });
 postSchema.index({ createdAt: -1 });
 postSchema.index({ likes: 1 });
 postSchema.index({ views: 1 });
-postSchema.index({ category: 1 });
+// Removed category index since we're separating content types
 postSchema.index({ tags: 1 });
 postSchema.index({ privacy: 1 });
 postSchema.index({ scheduledAt: 1 });
 postSchema.index({ author: 1, createdAt: -1 }); // Compound index for user posts
-postSchema.index({ category: 1, createdAt: -1 }); // Compound index for category feeds
+// Removed category compound index since we're separating content types
 postSchema.index({ 
   title: 'text', 
   description: 'text' 

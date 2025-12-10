@@ -137,3 +137,25 @@ export const deleteNotification = async (req, res) => {
     });
   }
 };
+
+// @desc    Get unread notification count
+// @route   GET /api/notifications/unread/count
+// @access  Private
+export const getUnreadCount = async (req, res) => {
+  try {
+    const count = await Notification.countDocuments({
+      recipient: req.user._id,
+      read: false,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: { count },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

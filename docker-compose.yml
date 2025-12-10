@@ -4,18 +4,18 @@ services:
   # MongoDB Service
   mongodb:
     image: mongo:6.0
-    container_name: instatube_mongodb
+    container_name: d4dhub_mongodb
     restart: unless-stopped
     ports:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: instatube_password
+      MONGO_INITDB_ROOT_PASSWORD: d4dhub_password
     volumes:
       - mongodb_data:/data/db
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     networks:
-      - instatube_network
+      - d4dhub_network
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
       interval: 30s
@@ -26,14 +26,14 @@ services:
   # Redis Service
   redis:
     image: redis:7-alpine
-    container_name: instatube_redis
+    container_name: d4dhub_redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
-      - instatube_network
+      - d4dhub_network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -44,7 +44,7 @@ services:
   # MinIO Service (S3-compatible object storage)
   minio:
     image: minio/minio:RELEASE.2023-05-18T00-05-36Z
-    container_name: instatube_minio
+    container_name: d4dhub_minio
     restart: unless-stopped
     ports:
       - "9000:9000"
@@ -56,7 +56,7 @@ services:
       - minio_data:/data
     command: server /data --console-address ":9001"
     networks:
-      - instatube_network
+      - d4dhub_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -69,13 +69,13 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: instatube_backend
+    container_name: d4dhub_backend
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - MONGO_URI=mongodb://admin:instatube_password@mongodb:27017/instatube?authSource=admin
+      - MONGO_URI=mongodb://admin:d4dhub_password@mongodb:27017/d4dhub?authSource=admin
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_ENABLED=true
@@ -84,7 +84,7 @@ services:
       - MINIO_USE_SSL=false
       - MINIO_ACCESS_KEY=Abhinash
       - MINIO_SECRET_KEY=Abhinash1212
-      - MINIO_BUCKET=instatube
+      - MINIO_BUCKET=d4dhub
       - JWT_SECRET=your_secure_jwt_secret_here
       - SESSION_SECRET=your_secure_session_secret_here
       - FRONTEND_URL=http://localhost:5001
@@ -96,7 +96,7 @@ services:
       minio:
         condition: service_healthy
     networks:
-      - instatube_network
+      - d4dhub_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
@@ -109,7 +109,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: instatube_frontend
+    container_name: d4dhub_frontend
     restart: unless-stopped
     ports:
       - "5001:80"
@@ -120,7 +120,7 @@ services:
       backend:
         condition: service_healthy
     networks:
-      - instatube_network
+      - d4dhub_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
@@ -139,5 +139,5 @@ volumes:
 
 # Networks for service communication
 networks:
-  instatube_network:
+  d4dhub_network:
     driver: bridge

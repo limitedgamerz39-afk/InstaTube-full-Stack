@@ -67,6 +67,13 @@ const Analytics = () => {
   }, []);
 
   const fetchAnalytics = async () => {
+    // Check if user is available
+    if (!user || !user.username) {
+      console.error('User not available for analytics');
+      setLoading(false);
+      return;
+    }
+    
     try {
       const [postsRes, profileRes] = await Promise.all([
         postAPI.getFeed(),
@@ -129,7 +136,7 @@ const Analytics = () => {
             <BsGraphUp className="mr-3" />
             Analytics Dashboard
           </h1>
-          <p className="text-purple-100">Track your friendflix performance</p>
+          <p className="text-purple-100">Track your D4D HUB performance</p>
         </div>
 
         {/* Stats Grid */}

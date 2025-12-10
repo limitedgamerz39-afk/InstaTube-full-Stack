@@ -5,6 +5,7 @@ import {
   getPostsByHashtag,
   getSuggestedUsers,
   getTrendingPosts,
+  getSuggestedCreators,
 } from '../controllers/exploreController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -15,5 +16,6 @@ router.get('/trending', getTrendingPosts);
 router.get('/hashtags', getTrendingHashtags);
 router.get('/tags/:tag', getPostsByHashtag);
 router.get('/users', protect, getSuggestedUsers);
+router.get('/creators', protect, getSuggestedCreators);
 
 export default router;

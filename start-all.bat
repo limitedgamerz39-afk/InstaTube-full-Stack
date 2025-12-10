@@ -1,5 +1,5 @@
 @echo off
-echo Starting friendflix Self-Hosted Services...
+echo Starting D4D HUB Self-Hosted Services...
 echo.
 
 echo 1. Starting MongoDB (if not already running)

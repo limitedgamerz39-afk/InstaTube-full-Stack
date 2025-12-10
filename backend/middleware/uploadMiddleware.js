@@ -8,48 +8,28 @@ import { logSecurityEvent } from '../utils/logger.js';
 const allowedFileTypes = {
   image: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
   video: ['video/mp4', 'video/quicktime', 'video/webm', 'video/ogg'],
-  audio: ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg']
+  audio: ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg'],
+  // Add missing categories that frontend sends
+  short: ['video/mp4', 'video/quicktime', 'video/webm', 'video/ogg'],
+  long: ['video/mp4', 'video/quicktime', 'video/webm', 'video/ogg']
 };
 
 // ✅ File size limits (in bytes)
 const fileSizeLimits = {
-  image: 10 * 1024 * 1024, // 10MB
-  video: 1000 * 1024 * 1024, // 1GB
-  audio: 100 * 1024 * 1024 // 100MB
+  image: 20 * 1024 * 1024, // Increased to 20MB
+  video: 2000 * 1024 * 1024, // Increased to 2GB
+  audio: 200 * 1024 * 1024, // Increased to 200MB
+  // Add missing categories with appropriate size limits
+  short: 500 * 1024 * 1024, // Increased to 500MB for shorts
+  long: 2000 * 1024 * 1024  // Increased to 2GB for long videos
 };
 
 // ✅ Storage configuration
 const storage = multer.memoryStorage();
 
-// ✅ File filter function
+// ✅ File filter function - only basic validation, category validation happens in controller
 const fileFilter = (req, file, cb) => {
-  const { category = 'image' } = req.body;
-  
-  // Validate file type
-  if (!allowedFileTypes[category] || !allowedFileTypes[category].includes(file.mimetype)) {
-    logSecurityEvent('INVALID_FILE_TYPE', {
-      userId: req.user?._id,
-      fileName: file.originalname,
-      mimeType: file.mimetype,
-      category
-    });
-    
-    return cb(new Error(`Invalid file type for ${category}. Allowed types: ${allowedFileTypes[category].join(', ')}`), false);
-  }
-  
-  // Validate file size
-  if (file.size > fileSizeLimits[category]) {
-    logSecurityEvent('FILE_SIZE_EXCEEDED', {
-      userId: req.user?._id,
-      fileName: file.originalname,
-      fileSize: file.size,
-      maxSize: fileSizeLimits[category],
-      category
-    });
-    
-    return cb(new Error(`File size exceeds limit for ${category}. Max size: ${fileSizeLimits[category] / (1024 * 1024)}MB`), false);
-  }
-  
+  // Allow all file types at this stage, validation will happen in controller
   cb(null, true);
 };
 
@@ -58,9 +38,19 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 1000 * 1024 * 1024 // 1GB max (will be further restricted by category)
+    fileSize: 2000 * 1024 * 1024, // Increased to 2GB max (will be further restricted by category)
+    files: 20, // Allow up to 20 files in a single request
+    fieldSize: 50 * 1024 * 1024, // Increase field size limit to 50MB
   }
 });
+
+// Add debugging middleware before upload
+export const debugUpload = (req, res, next) => {
+  console.log('=== UPLOAD MIDDLEWARE CALLED ===');
+  console.log('Content-Type:', req.headers['content-type']);
+  console.log('Content-Length:', req.headers['content-length']);
+  next();
+};
 
 // ✅ Image processing middleware
 export const processImage = async (req, res, next) => {
@@ -210,7 +200,10 @@ export const scanForMalware = (req, res, next) => {
 // ✅ Export configured upload middleware
 export const uploadSingle = (fieldName, category) => [
   (req, res, next) => {
-    req.body.category = category;
+    // Only set category if not already present in request body
+    if (!req.body.category) {
+      req.body.category = category;
+    }
     next();
   },
   upload.single(fieldName),
@@ -222,7 +215,10 @@ export const uploadSingle = (fieldName, category) => [
 
 export const uploadMultiple = (fieldName, category, maxCount = 10) => [
   (req, res, next) => {
-    req.body.category = category;
+    // Only set category if not already present in request body
+    if (!req.body.category) {
+      req.body.category = category;
+    }
     next();
   },
   upload.array(fieldName, maxCount),

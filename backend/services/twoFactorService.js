@@ -7,7 +7,7 @@ export const generateTwoFactorSecret = async (user) => {
   try {
     // Generate a secret
     const secret = speakeasy.generateSecret({
-      name: 'friendflix',
+      name: 'D4D HUB',
       account: user.email,
     });
 

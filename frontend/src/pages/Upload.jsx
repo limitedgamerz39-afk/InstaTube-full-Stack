@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import StepNavigation from '../components/StepNavigation';
 import ContentTypeStep from '../components/UploadSteps/ContentTypeStep';
@@ -9,10 +9,12 @@ import DetailsStep from '../components/UploadSteps/DetailsStep';
 import ReviewStep from '../components/UploadSteps/ReviewStep';
 import YouTubeStyleUpload from '../components/YouTubeStyleUpload';
 import { requestCameraAndMicrophonePermissions } from '../utils/permissions';
+import { isMobileDevice } from '../utils/deviceDetection';
 import toast from 'react-hot-toast';
 
 const Upload = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [permissionsRequested, setPermissionsRequested] = useState(false);
@@ -36,9 +38,43 @@ const Upload = () => {
     textOverlayContent: '',
     selectedAudio: null
   });
+  
+  // Check if we're coming from mobile shorts
+  useEffect(() => {
+    if (location.state && location.state.file) {
+      // Handle mobile short upload
+      const { file, settings, contentType } = location.state;
+      
+      // Create preview for the captured file
+      const preview = {
+        url: URL.createObjectURL(file),
+        type: file.type,
+        name: file.name
+      };
+      
+      setUploadData(prev => ({
+        ...prev,
+        contentType: contentType || 'short',
+        files: [file],
+        previews: [preview],
+        textOverlayContent: settings?.textOverlay || '',
+        selectedAudio: settings?.audio || null,
+        playbackRate: settings?.speed || 1
+      }));
+      
+      // Move to the details step for mobile shorts
+      setCurrentStep(4);
+    }
+  }, [location.state]);
 
   // Request permissions when component mounts
   useEffect(() => {
+    // Redirect mobile users to the mobile recorder
+    if (isMobileDevice() && !location.state) {
+      navigate('/shorts/mobile');
+      return;
+    }
+    
     const requestPermissions = async () => {
       if (!permissionsRequested) {
         try {
@@ -119,7 +155,7 @@ const Upload = () => {
   };
 
   const renderStep = () => {
-    // If we're on step 2 (MediaSelection) and user has selected friendflix style
+    // If we're on step 2 (MediaSelection) and user has selected D4D HUB style
     if (currentStep === 2 && useYouTubeStyle) {
       return (
         <YouTubeStyleUpload
@@ -191,7 +227,7 @@ const Upload = () => {
           </p>
         </div>
 
-        {/* Only show step navigation for non-friendflix style uploads */}
+        {/* Only show step navigation for non-D4D HUB style uploads */}
         {!useYouTubeStyle && (
           <StepNavigation 
             currentStep={currentStep}

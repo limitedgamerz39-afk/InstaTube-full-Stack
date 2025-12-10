@@ -48,7 +48,7 @@ version: '3.8'
 services:
   traefik:
     image: traefik:v2.9
-    container_name: instatube_traefik
+    container_name: d4dhub_traefik
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
@@ -67,7 +67,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./letsencrypt:/letsencrypt"
     networks:
-      - instatube_network
+      - d4dhub_network
 
   # Add labels to your frontend service
   frontend:

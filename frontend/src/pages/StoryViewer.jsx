@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { storyAPI } from '../services/api';
@@ -12,30 +12,58 @@ const StoryViewer = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [stories, setStories] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [storyGroups, setStoryGroups] = useState([]);
+  const [currentUserIndex, setCurrentUserIndex] = useState(0);
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [replyText, setReplyText] = useState('');
   const [showMenu, setShowMenu] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  
   const progressInterval = useRef(null);
+  const videoRef = useRef(null);
 
   useEffect(() => {
-    fetchStories();
+    const savedState = JSON.parse(sessionStorage.getItem('storyViewerState'));
+    if (savedState) {
+      fetchStories(savedState);
+    } else {
+      fetchStories();
+    }
   }, [userId]);
 
   useEffect(() => {
-    if (stories.length > 0) {
+    if (storyGroups.length > 0) {
+      sessionStorage.setItem('storyViewerState', JSON.stringify({ currentUserIndex, currentStoryIndex }));
       viewCurrentStory();
-      startProgress();
+      setProgress(0); // Reset progress for new story
     }
     return () => clearProgress();
-  }, [currentIndex, stories]);
+  }, [currentUserIndex, currentStoryIndex, storyGroups]);
+  
+  useEffect(() => {
+    if (storyGroups.length > 0 && progress === 0 && !isPaused) {
+        startProgress();
+    }
+  }, [progress, storyGroups, currentUserIndex, currentStoryIndex, isPaused]);
 
-  const fetchStories = async () => {
+  const fetchStories = async (savedState = null) => {
     try {
-      const response = await storyAPI.getUserStories(userId);
-      setStories(response.data.data);
+      const response = await storyAPI.getsubscribedStories();
+      const fetchedStoryGroups = response.data.data;
+      setStoryGroups(fetchedStoryGroups);
+
+      if (savedState) {
+        setCurrentUserIndex(savedState.currentUserIndex);
+        setCurrentStoryIndex(savedState.currentStoryIndex);
+      } else if (userId) {
+        const initialUserIndex = fetchedStoryGroups.findIndex(group => group.author._id === userId);
+        if (initialUserIndex !== -1) {
+          setCurrentUserIndex(initialUserIndex);
+          setCurrentStoryIndex(0);
+        }
+      }
       setLoading(false);
     } catch (error) {
       toast.error('Failed to load stories');
@@ -44,9 +72,9 @@ const StoryViewer = () => {
   };
 
   const viewCurrentStory = async () => {
-    if (stories[currentIndex]) {
+    if (storyGroups[currentUserIndex]?.stories[currentStoryIndex]) {
       try {
-        await storyAPI.viewStory(stories[currentIndex]._id);
+        await storyAPI.viewStory(storyGroups[currentUserIndex].stories[currentStoryIndex]._id);
       } catch (error) {
         console.error('Failed to mark story as viewed');
       }
@@ -54,10 +82,16 @@ const StoryViewer = () => {
   };
 
   const startProgress = () => {
-    clearProgress();
-    setProgress(0);
+    clearProgress(); // Always clear previous timer
     
-    const duration = stories[currentIndex]?.mediaType === 'video' ? 15000 : 5000;
+    // Don't start progress if paused
+    if (isPaused) return;
+    
+    // Use video's actual duration if available, otherwise default.
+    const duration = storyGroups[currentUserIndex]?.stories[currentStoryIndex]?.mediaType === 'video' 
+      ? (videoRef.current?.duration * 1000 || 15000) 
+      : 5000;
+      
     const interval = 50;
     const increment = (interval / duration) * 100;
 
@@ -77,56 +111,99 @@ const StoryViewer = () => {
       clearInterval(progressInterval.current);
     }
   };
+  
+  // Handlers for pausing and resuming
+  const handlePause = () => {
+    setIsPaused(true);
+    clearProgress();
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
+  };
 
-  const nextStory = () => {
-    if (currentIndex < stories.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+  const handleResume = () => {
+    setIsPaused(false);
+    startProgress();
+    if (videoRef.current) {
+      videoRef.current.play();
+    }
+  };
+
+  const nextStory = useCallback(() => {
+    if (currentStoryIndex < storyGroups[currentUserIndex]?.stories.length - 1) {
+      setCurrentStoryIndex(currentStoryIndex + 1);
+    } else if (currentUserIndex < storyGroups.length - 1) {
+      setCurrentUserIndex(currentUserIndex + 1);
+      setCurrentStoryIndex(0);
     } else {
+      sessionStorage.removeItem('storyViewerState');
       navigate('/');
     }
-  };
+  }, [currentStoryIndex, currentUserIndex, storyGroups, navigate]);
 
-  const previousStory = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
+  const previousStory = useCallback(() => {
+    if (currentStoryIndex > 0) {
+      setCurrentStoryIndex(currentStoryIndex - 1);
+    } else if (currentUserIndex > 0) {
+      const prevUserIndex = currentUserIndex - 1;
+      setCurrentUserIndex(prevUserIndex);
+      setCurrentStoryIndex(storyGroups[prevUserIndex].stories.length - 1);
     }
-  };
+  }, [currentStoryIndex, currentUserIndex, storyGroups]);
 
   const handleReply = async (e) => {
     e.preventDefault();
-    
     if (!replyText.trim()) return;
 
     try {
-      await storyAPI.replyToStory(stories[currentIndex]._id, replyText);
+      // Pause the story when replying
+      handlePause();
+      
+      await storyAPI.replyToStory(storyGroups[currentUserIndex].stories[currentStoryIndex]._id, replyText);
       toast.success('Reply sent');
       setReplyText('');
+      
+      // Resume the story after sending reply
+      handleResume();
     } catch (error) {
       toast.error('Failed to send reply');
+      // Resume even if there's an error
+      handleResume();
     }
   };
 
   const handleDelete = async () => {
     if (window.confirm('Delete this story?')) {
       try {
-        await storyAPI.deleteStory(stories[currentIndex]._id);
+        await storyAPI.deleteStory(storyGroups[currentUserIndex].stories[currentStoryIndex]._id);
         toast.success('Story deleted');
-        const newStories = stories.filter((_, i) => i !== currentIndex);
-        if (newStories.length === 0) {
-          navigate('/');
-        } else {
-          setStories(newStories);
-          if (currentIndex >= newStories.length) {
-            setCurrentIndex(newStories.length - 1);
+        
+        const newStoryGroups = [...storyGroups];
+        newStoryGroups[currentUserIndex].stories.splice(currentStoryIndex, 1);
+
+        if (newStoryGroups[currentUserIndex].stories.length === 0) {
+          newStoryGroups.splice(currentUserIndex, 1);
+          if (newStoryGroups.length === 0) {
+            sessionStorage.removeItem('storyViewerState');
+            navigate('/');
+            return;
           }
+          if (currentUserIndex >= newStoryGroups.length) {
+            setCurrentUserIndex(newStoryGroups.length - 1);
+          }
+          setCurrentStoryIndex(0);
+        } else if (currentStoryIndex >= newStoryGroups[currentUserIndex].stories.length) {
+          setCurrentStoryIndex(newStoryGroups[currentUserIndex].stories.length - 1);
         }
+
+        setStoryGroups(newStoryGroups);
       } catch (error) {
         toast.error('Failed to delete story');
       }
     }
   };
 
-  if (loading || stories.length === 0) {
+  if (loading || storyGroups.length === 0) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
@@ -134,8 +211,8 @@ const StoryViewer = () => {
     );
   }
 
-  const currentStory = stories[currentIndex];
-  const isOwnStory = currentStory.author._id === user?._id;
+  const currentStory = storyGroups[currentUserIndex].stories[currentStoryIndex];
+  const isOwnStory = storyGroups[currentUserIndex].author._id === user?._id;
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center">
@@ -143,18 +220,18 @@ const StoryViewer = () => {
       <div className="relative w-full max-w-md h-screen">
         {/* Progress Bars */}
         <div className="absolute top-0 left-0 right-0 flex space-x-1 p-2 z-20">
-          {stories.map((_, index) => (
+          {storyGroups[currentUserIndex].stories.map((_, index) => (
             <div
               key={index}
               className="flex-1 h-0.5 bg-gray-600 rounded-full overflow-hidden"
             >
               <div
-                className="h-full bg-white transition-all"
+                className="h-full bg-white transition-all duration-50"
                 style={{
                   width:
-                    index < currentIndex
+                    index < currentStoryIndex
                       ? '100%'
-                      : index === currentIndex
+                      : index === currentStoryIndex
                       ? `${progress}%`
                       : '0%',
                 }}
@@ -167,13 +244,13 @@ const StoryViewer = () => {
         <div className="absolute top-4 left-0 right-0 flex items-center justify-between px-4 z-20">
           <div className="flex items-center space-x-2">
             <img
-              src={currentStory.author.avatar}
-              alt={currentStory.author.username}
+              src={storyGroups[currentUserIndex].author.avatar}
+              alt={storyGroups[currentUserIndex].author.username}
               className="h-10 w-10 rounded-full object-cover ring-2 ring-white"
             />
             <div>
               <p className="text-white font-semibold">
-                {currentStory.author.username}
+                {storyGroups[currentUserIndex].author.username}
               </p>
               <p className="text-white text-xs">{timeAgo(currentStory.createdAt)}</p>
             </div>
@@ -189,7 +266,10 @@ const StoryViewer = () => {
               </button>
             )}
             <button
-              onClick={() => navigate('/')}
+              onClick={() => {
+                sessionStorage.removeItem('storyViewerState');
+                navigate('/');
+              }}
               className="text-white hover:bg-gray-800/50 p-2 rounded-full"
             >
               <AiOutlineClose size={24} />
@@ -198,7 +278,7 @@ const StoryViewer = () => {
 
           {/* Menu */}
           {showMenu && isOwnStory && (
-            <div className="absolute top-12 right-4 bg-gray-900 rounded-lg shadow-lg py-2 w-40">
+            <div className="absolute top-12 right-4 bg-gray-900 rounded-lg shadow-lg py-2 w-40 z-30">
               <button
                 onClick={handleDelete}
                 className="block w-full text-left px-4 py-2 text-red-500 hover:bg-gray-800"
@@ -211,7 +291,7 @@ const StoryViewer = () => {
 
         {/* Story Media */}
         <div
-          className="absolute inset-0 flex items-center justify-center"
+          className="absolute inset-0 flex items-center justify-center z-10"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const x = e.clientX - rect.left;
@@ -221,12 +301,19 @@ const StoryViewer = () => {
               nextStory();
             }
           }}
+          onMouseDown={handlePause}
+          onMouseUp={handleResume}
+          onTouchStart={handlePause}
+          onTouchEnd={handleResume}
         >
           {currentStory.mediaType === 'video' ? (
             <video
+              ref={videoRef}
               src={currentStory.mediaUrl}
               className="w-full h-full object-contain"
               autoPlay
+              playsInline
+              onLoadedData={startProgress} // Start progress after video metadata is loaded
               onEnded={nextStory}
             />
           ) : (
@@ -239,13 +326,11 @@ const StoryViewer = () => {
 
           {/* Stickers */}
           {currentStory.stickers && currentStory.stickers.map((sticker, index) => {
-            // Position stickers absolutely based on their x,y coordinates
             const stickerStyle = {
               position: 'absolute',
               left: `${sticker.x}%`,
               top: `${sticker.y}%`,
               transform: 'translate(-50%, -50%)',
-              zIndex: 10
             };
 
             switch (sticker.type) {
@@ -313,8 +398,10 @@ const StoryViewer = () => {
                 type="text"
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
-                placeholder={`Reply to ${currentStory.author.username}...`}
+                placeholder={`Reply to ${storyGroups[currentUserIndex].author.username}...`}
                 className="flex-1 px-4 py-3 bg-transparent border-2 border-white text-white rounded-full focus:outline-none"
+                onFocus={handlePause}
+                onBlur={handleResume}
               />
               <button
                 type="submit"

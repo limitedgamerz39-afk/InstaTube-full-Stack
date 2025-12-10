@@ -23,7 +23,7 @@ export const createCommunityPost = async (req, res) => {
     };
 
     if (req.file) {
-      const uploadResult = await uploadToStorage(req.file.buffer, 'friendflix/community', req.file.originalname);
+      const uploadResult = await uploadToStorage(req.file.buffer, 'd4dhub/community', req.file.originalname);
       postData.media = {
         url: uploadResult.secure_url,
         type: req.file.mimetype.startsWith('image/') ? 'image' : 'video',

@@ -26,7 +26,7 @@ export const sendVoiceMessage = async (req, res) => {
     }
 
     // Upload to MinIO (auto resource type handles audio/video containers like webm/ogg)
-    const upload = await uploadToStorage(req.file.buffer, 'friendflix/messages', req.file.originalname);
+    const upload = await uploadToStorage(req.file.buffer, 'd4dhub/messages', req.file.originalname);
 
     // Note: MinIO doesn't provide audio duration metadata
     // Setting to 0 as a placeholder - can be extracted client-side if needed
@@ -74,7 +74,7 @@ export const sendAttachment = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Attachment is required' });
     }
 
-    const upload = await uploadToStorage(req.file.buffer, 'friendflix/messages', req.file.originalname);
+    const upload = await uploadToStorage(req.file.buffer, 'd4dhub/messages', req.file.originalname);
     const mime = req.file.mimetype || '';
 
     let messagePayload = {

@@ -9,7 +9,7 @@ const logger = winston.createLogger({
     winston.format.errors({ stack: true }),
     winston.format.json()
   ),
-  defaultMeta: { service: 'instatube-backend' },
+  defaultMeta: { service: 'd4d-hub-backend' },
   transports: [
     // ✅ Write all logs with level `error` and below to `error.log`
     new winston.transports.File({ 

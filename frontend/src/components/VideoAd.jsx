@@ -3,6 +3,7 @@ import { AiOutlineClose } from 'react-icons/ai';
 
 const VideoAd = ({ 
   type = 'pre-roll',
+  adFormat = 'skippable', // skippable, non-skippable, bumper
   duration = 5,
   onComplete,
   onSkip 
@@ -15,8 +16,18 @@ const VideoAd = ({
     if (countdown > 0) {
       const timer = setTimeout(() => {
         setCountdown(countdown - 1);
-        // Set skip availability based on ad type
-        const skipAfter = type === 'pre-roll' ? 3 : type === 'mid-roll' ? 3 : 2;
+        // Set skip availability based on ad type and format
+        let skipAfter = 3;
+        if (type === 'pre-roll') {
+          skipAfter = adFormat === 'skippable' ? 5 : 
+                     adFormat === 'non-skippable' ? duration : 
+                     6; // bumper
+        } else if (type === 'mid-roll') {
+          skipAfter = 3;
+        } else if (type === 'post-roll') {
+          skipAfter = 2;
+        }
+        
         if (countdown === skipAfter) {
           setCanSkip(true);
         }
@@ -25,7 +36,7 @@ const VideoAd = ({
     } else {
       handleComplete();
     }
-  }, [countdown, type]);
+  }, [countdown, type, adFormat, duration]);
 
   const handleComplete = () => {
     setIsVisible(false);
@@ -39,12 +50,39 @@ const VideoAd = ({
 
   if (!isVisible) return null;
 
+  // Mock ad content based on format
+  const getMockAdContent = () => {
+    const adContents = {
+      skippable: {
+        title: "Premium Brand Ad",
+        description: "Discover amazing products!",
+        brand: "BrandCo"
+      },
+      nonSkippable: {
+        title: "Important Announcement",
+        description: "Don't miss this exclusive offer!",
+        brand: "Exclusive Deals"
+      },
+      bumper: {
+        title: "Quick Message",
+        description: "Fast fashion at affordable prices",
+        brand: "StyleHub"
+      }
+    };
+    
+    return adContents[adFormat] || adContents.skippable;
+  };
+
+  const adContent = getMockAdContent();
+
   return (
     <div className="absolute inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
       <div className="relative w-full h-full bg-gray-900 rounded-lg overflow-hidden">
         <div className="absolute top-4 right-4 z-10">
           <div className="bg-black bg-opacity-70 text-white px-3 py-1 rounded text-sm">
-            {type === 'pre-roll' ? 'Video will play in ' : type === 'mid-roll' ? 'Ad: ' : 'Thanks for watching!'}
+            {type === 'pre-roll' ? 'Ad starts video in ' : 
+             type === 'mid-roll' ? 'Ad: ' : 
+             'Thanks for watching!'}
             {countdown}s
           </div>
         </div>
@@ -61,13 +99,14 @@ const VideoAd = ({
 
         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-600 to-orange-500">
           <div className="text-center text-white p-8">
-            <div className="text-6xl mb-4">📺</div>
-            <h3 className="text-2xl font-bold mb-2">Advertisement</h3>
-            <p className="text-sm opacity-80">
-              {type === 'pre-roll' && 'Your video will start shortly'}
-              {type === 'mid-roll' && 'Your video will resume shortly'}
-              {type === 'post-roll' && 'Thanks for watching!'}
-            </p>
+            <div className="text-6xl mb-4">
+              {adFormat === 'skippable' ? '📺' : 
+               adFormat === 'non-skippable' ? '📢' : 
+               '⚡'}
+            </div>
+            <h3 className="text-2xl font-bold mb-2">{adContent.title}</h3>
+            <p className="text-sm opacity-80 mb-2">{adContent.description}</p>
+            <p className="text-xs opacity-60">Presented by {adContent.brand}</p>
             <div className="mt-6">
               <div className="w-full bg-gray-700 rounded-full h-2">
                 <div 

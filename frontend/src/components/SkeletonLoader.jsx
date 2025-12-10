@@ -1,30 +1,33 @@
 import React from 'react';
 
 const PostSkeleton = () => (
-  <div className="bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-sm mb-3 animate-pulse">
+  <div className="flex flex-col space-y-3 mb-4 animate-pulse">
     {/* Video Container */}
-    <div className="relative w-full aspect-video bg-gray-300 dark:bg-gray-700">
+    <div className="relative w-full aspect-video bg-gray-300 dark:bg-gray-700 rounded-xl overflow-hidden shadow-md">
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="bg-gray-400 dark:bg-gray-600 rounded-full p-2 opacity-70">
+        <div className="bg-gray-400 dark:bg-gray-600 rounded-full p-3 opacity-70">
           <div className="w-8 h-8" />
         </div>
       </div>
     </div>
 
     {/* Video Info */}
-    <div className="p-3">
-      <div className="flex justify-between items-start mb-2">
-        <div className="flex-1">
-          <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-3/4 mb-1"></div>
-          <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-1/2"></div>
-        </div>
-        <div className="h-5 w-5 rounded bg-gray-300 dark:bg-gray-700 ml-2"></div>
+    <div className="flex items-start space-x-3">
+      <div className="flex-shrink-0">
+        <div className="w-9 h-9 rounded-full bg-gray-300 dark:bg-gray-700"></div>
       </div>
-      <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mt-1">
-        <div className="h-3 w-3 rounded-full bg-gray-300 dark:bg-gray-700 mr-1"></div>
-        <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-16 mx-1"></div>
-        <div className="h-3 w-1 rounded bg-gray-300 dark:bg-gray-700 mx-1"></div>
-        <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-20 ml-1"></div>
+      <div className="flex-1 min-w-0">
+        <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-3/4 mb-1"></div>
+        <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-1/2"></div>
+        <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <div className="h-3 w-3 rounded-full bg-gray-300 dark:bg-gray-700 mr-1"></div>
+          <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-16 mx-1"></div>
+          <div className="h-3 w-1 rounded bg-gray-300 dark:bg-gray-700 mx-1"></div>
+          <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-20 ml-1"></div>
+        </div>
+      </div>
+      <div className="flex-shrink-0">
+        <div className="h-5 w-5 rounded bg-gray-300 dark:bg-gray-700 ml-2"></div>
       </div>
     </div>
   </div>

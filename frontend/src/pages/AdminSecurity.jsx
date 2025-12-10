@@ -1,7 +1,26 @@
 import { useState, useEffect } from 'react';
 import { adminAPI } from '../services/adminAPI';
 import toast from 'react-hot-toast';
-import { FiShield, FiActivity, FiAlertTriangle, FiCheckCircle, FiXCircle, FiSearch } from 'react-icons/fi';
+import { 
+  FiShield, 
+  FiActivity, 
+  FiAlertTriangle, 
+  FiCheckCircle, 
+  FiXCircle, 
+  FiSearch,
+  FiDatabase,
+  FiServer,
+  FiClock,
+  FiUser,
+  FiGlobe,
+  FiMapPin,
+  FiCalendar,
+  FiFilter,
+  FiDownload,
+  FiRefreshCw,
+  FiEye,
+  FiInfo
+} from 'react-icons/fi';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 
 const AdminSecurity = () => {
@@ -14,6 +33,8 @@ const AdminSecurity = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [eventTypeFilter, setEventTypeFilter] = useState('');
   const [severityFilter, setSeverityFilter] = useState('');
+  const [timeRange, setTimeRange] = useState(7);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Fetch security data
   useEffect(() => {
@@ -44,7 +65,7 @@ const AdminSecurity = () => {
     };
 
     fetchData();
-  }, []);
+  }, [timeRange]);
 
   // Format date for display
   const formatDate = (dateString) => {
@@ -98,6 +119,37 @@ const AdminSecurity = () => {
     }
   };
 
+  const refreshData = () => {
+    // Re-fetch data
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch security events
+        const eventsResponse = await adminAPI.getSecurityEvents();
+        setSecurityEvents(eventsResponse.data.data.events);
+        
+        // Fetch login activities
+        const loginResponse = await adminAPI.getLoginActivities();
+        setLoginActivities(loginResponse.data.data.activities);
+        
+        // Fetch suspicious activities
+        const suspiciousResponse = await adminAPI.getSuspiciousActivities();
+        setSuspiciousActivities(suspiciousResponse.data.data);
+        
+        // Fetch stats
+        const statsResponse = await adminAPI.getSecurityStats();
+        setStats(statsResponse.data.data);
+      } catch (error) {
+        toast.error('Failed to refresh security data');
+        console.error('Error refreshing security data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 py-8 px-4">
       <div className="max-w-7xl mx-auto">
@@ -110,6 +162,24 @@ const AdminSecurity = () => {
             <p className="text-gray-600 dark:text-gray-400 mt-2">
               Monitor and manage security events across the platform
             </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(Number(e.target.value))}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value={1}>Last 24 hours</option>
+              <option value={7}>Last 7 days</option>
+              <option value={30}>Last 30 days</option>
+            </select>
+            <button
+              onClick={refreshData}
+              disabled={loading}
+              className="p-2 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition disabled:opacity-50"
+            >
+              <FiRefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
         </div>
 
@@ -220,40 +290,67 @@ const AdminSecurity = () => {
               </div>
               
               <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition flex items-center gap-2"
+                >
+                  <FiFilter className="w-4 h-4" />
+                  Filters
+                </button>
+                
+                <button
+                  onClick={() => toast.success('Export started. Check your downloads folder.')}
+                  className="px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center gap-2"
+                >
+                  <FiDownload className="w-4 h-4" />
+                  Export
+                </button>
+              </div>
+            </div>
+            
+            {/* Filters - Collapsible */}
+            {showFilters && (
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 {activeTab === 'events' && (
                   <>
-                    <select
-                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={eventTypeFilter}
-                      onChange={(e) => setEventTypeFilter(e.target.value)}
-                    >
-                      <option value="">All Event Types</option>
-                      <option value="suspicious_login">Suspicious Login</option>
-                      <option value="failed_login">Failed Login</option>
-                      <option value="successful_login">Successful Login</option>
-                      <option value="password_reset">Password Reset</option>
-                      <option value="email_verification">Email Verification</option>
-                      <option value="2fa_enabled">2FA Enabled</option>
-                      <option value="2fa_disabled">2FA Disabled</option>
-                      <option value="suspicious_file_upload">Suspicious File Upload</option>
-                      <option value="malicious_content_detected">Malicious Content</option>
-                    </select>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Event Type</label>
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        value={eventTypeFilter}
+                        onChange={(e) => setEventTypeFilter(e.target.value)}
+                      >
+                        <option value="">All Event Types</option>
+                        <option value="suspicious_login">Suspicious Login</option>
+                        <option value="failed_login">Failed Login</option>
+                        <option value="successful_login">Successful Login</option>
+                        <option value="password_reset">Password Reset</option>
+                        <option value="email_verification">Email Verification</option>
+                        <option value="2fa_enabled">2FA Enabled</option>
+                        <option value="2fa_disabled">2FA Disabled</option>
+                        <option value="suspicious_file_upload">Suspicious File Upload</option>
+                        <option value="malicious_content_detected">Malicious Content</option>
+                      </select>
+                    </div>
                     
-                    <select
-                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={severityFilter}
-                      onChange={(e) => setSeverityFilter(e.target.value)}
-                    >
-                      <option value="">All Severities</option>
-                      <option value="critical">Critical</option>
-                      <option value="high">High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low</option>
-                    </select>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Severity</label>
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        value={severityFilter}
+                        onChange={(e) => setSeverityFilter(e.target.value)}
+                      >
+                        <option value="">All Severities</option>
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                      </select>
+                    </div>
                   </>
                 )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Content */}

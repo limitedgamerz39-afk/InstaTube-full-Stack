@@ -15,14 +15,18 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  // Initialize user state with cached data if available
+  const cachedUser = localStorage.getItem('user');
+  const initialUser = cachedUser ? JSON.parse(cachedUser) : null;
+  
+  const [user, setUser] = useState(initialUser);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [requires2FA, setRequires2FA] = useState(false);
   const [twoFactorUserId, setTwoFactorUserId] = useState(null);
   
   // React Query hooks
-  const { data: currentUserData, isLoading: isUserLoading, isError } = useCurrentUser();
+  const { data: currentUserData, isLoading: isUserLoading, isError, refetch } = useCurrentUser();
   const loginMutation = useLogin();
   const registerMutation = useRegister();
 
@@ -30,10 +34,24 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (currentUserData) {
       setUser(currentUserData.data.data);
+      // Store user data in localStorage for faster loading on refresh
+      localStorage.setItem('user', JSON.stringify(currentUserData.data.data));
       setLoading(false);
     } else if (isError) {
       // Handle error case - token might be invalid or expired
-      logout();
+      // Check if we have cached user data to maintain session
+      const cachedUser = localStorage.getItem('user');
+      if (cachedUser) {
+        try {
+          const parsedUser = JSON.parse(cachedUser);
+          setUser(parsedUser);
+          // Keep the cached user data but mark that we had an auth error
+          // This allows role-based routes to still work with cached data
+        } catch (e) {
+          console.error('Failed to parse cached user data:', e);
+          localStorage.removeItem('user');
+        }
+      }
       setLoading(false);
     }
   }, [currentUserData, isError]);
@@ -43,9 +61,57 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       // The useCurrentUser hook will automatically fetch user data
       socketService.connect(token);
-    } else {
-      // No token means user is not authenticated
+      // Also try to get cached user data immediately for better UX
+      const cachedUser = localStorage.getItem('user');
+      if (cachedUser) {
+        try {
+          const parsedUser = JSON.parse(cachedUser);
+          setUser(parsedUser);
+          // Don't set loading to false here because we still want to verify with the server
+        } catch (e) {
+          console.error('Failed to parse cached user data:', e);
+          localStorage.removeItem('user');
+        }
+      }
+      // Set loading to false immediately since we have user data to show
+      // But keep isUserLoading true so the ProtectedRoute knows we're verifying
       setLoading(false);
+    } else {
+      // Try to refresh token if we have a refresh token
+      refreshTokenIfNeeded().then(newToken => {
+        if (newToken) {
+          // If we got a new token, connect socket and fetch user data
+          socketService.connect(newToken);
+        } else {
+          // Check if we have cached user data
+          const cachedUser = localStorage.getItem('user');
+          if (cachedUser) {
+            try {
+              const parsedUser = JSON.parse(cachedUser);
+              setUser(parsedUser);
+              // Even without token, show cached data and let app decide what to do
+            } catch (e) {
+              console.error('Failed to parse cached user data:', e);
+              localStorage.removeItem('user');
+            }
+          }
+        }
+        // Set loading to false to allow app to render
+        setLoading(false);
+      }).catch(() => {
+        // If token refresh fails, still try to show cached data
+        const cachedUser = localStorage.getItem('user');
+        if (cachedUser) {
+          try {
+            const parsedUser = JSON.parse(cachedUser);
+            setUser(parsedUser);
+          } catch (e) {
+            console.error('Failed to parse cached user data:', e);
+            localStorage.removeItem('user');
+          }
+        }
+        setLoading(false);
+      });
     }
   }, [token]);
 
@@ -171,13 +237,14 @@ export const AuthProvider = ({ children }) => {
     }
     
     try {
-      localStorage.setItem('lastLogoutAttempt', now.toString());
       await api.post('/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
       localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
+      localStorage.removeItem('lastVisitedPath');
       setToken(null);
       setUser(null);
       setRequires2FA(false);
@@ -193,16 +260,88 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
+  // Function to refresh user data from the server with rate limiting
+  const refreshUser = async () => {
+    // Rate limiting - only allow refresh every 30 seconds
+    const now = Date.now();
+    const lastRefresh = localStorage.getItem('lastUserRefresh');
+    
+    if (lastRefresh && now - parseInt(lastRefresh) < 30000) {
+      // Return cached user data if available
+      const cachedUser = localStorage.getItem('user');
+      if (cachedUser) {
+        const userData = JSON.parse(cachedUser);
+        setUser(userData);
+        return userData;
+      }
+      // If no cached data, continue with refresh
+    }
+    
+    try {
+      const response = await api.get('/auth/me');
+      const userData = response.data.data.user;
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('lastUserRefresh', now.toString());
+      return userData;
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+      // Even if refresh fails, keep the cached user data
+      const cachedUser = localStorage.getItem('user');
+      if (cachedUser) {
+        const userData = JSON.parse(cachedUser);
+        setUser(userData);
+        return userData;
+      }
+      // If no cached data and refresh failed, but we had user data before, keep it
+      if (user) {
+        return user;
+      }
+      throw error;
+    }
+  };
+
+  // Function to refresh token if needed
+  const refreshTokenIfNeeded = async () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    const token = localStorage.getItem('token');
+    
+    if (!token && refreshToken) {
+      try {
+        const response = await api.post('/auth/refresh', { refreshToken });
+        const { token: newToken, refreshToken: newRefreshToken } = response.data;
+        localStorage.setItem('token', newToken);
+        if (newRefreshToken) {
+          localStorage.setItem('refreshToken', newRefreshToken);
+        }
+        setToken(newToken);
+        return newToken;
+      } catch (error) {
+        console.error('Failed to refresh token:', error);
+        // If token refresh fails, logout the user
+        logout();
+        throw error;
+      }
+    }
+    return token;
+  };
+
+
   const value = {
     user,
     token,
-    loading: loading || (token && isUserLoading), // Only show loading for user data if we have a token
+    loading, // Only show loading during initial app load
+    isVerifying: token && isUserLoading, // Separate flag for when we're verifying user data
     login,
     verifyTwoFactor,
     register,
     logout,
     updateUser,
-    isAuthenticated: !!user,
+    refreshUser, // Add refreshUser function to context
+    refreshTokenIfNeeded, // Add token refresh function to context
+    isAuthenticated: !!user, // User is authenticated if we have user data (even cached)
+    // But we distinguish between having a valid token and just cached data
+    hasValidToken: !!user && !!token, // Only true if both user and valid token exist
     requires2FA,
     twoFactorUserId,
     setRequires2FA

@@ -26,9 +26,11 @@ export const useLogin = () => {
     onSuccess: (data) => {
       // Set user data in localStorage
       localStorage.setItem('token', data.data.token);
+      localStorage.setItem('refreshToken', data.data.refreshToken);
       localStorage.setItem('user', JSON.stringify(data.data.user));
       // Invalidate and refetch queries
       queryClient.invalidateQueries({ queryKey: ['user'] });
+      queryClient.refetchQueries({ queryKey: ['user'] });
     }
   });
 };
@@ -46,7 +48,20 @@ export const useCurrentUser = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
     // Don't run the query if there's no token
-    enabled: !!localStorage.getItem('token')
+    enabled: !!localStorage.getItem('token'),
+    // Don't throw error on 401/403, let the AuthContext handle it
+    retryOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    // Cache the result to prevent flickering
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+    // Don't refetch on mount if data is fresh
+    refetchOnMount: 'always',
+    // Don't automatically set query to error state on 401/403
+    onError: (error) => {
+      // Let AuthContext handle authentication errors
+      console.debug('User data fetch error (handled by AuthContext):', error);
+    }
   });
 };
 
@@ -94,17 +109,17 @@ export const useUserSuggestions = () => {
 };
 
 // Post Queries
-export const useFeed = (page = 1, limit = 10) => {
+export const useFeed = (page = 1, limit = 10, filter = 'popular') => {
   return useQuery({
-    queryKey: ['feed', page, limit],
+    queryKey: ['feed', page, limit, filter],
     queryFn: async () => {
       // Implement rate limiting
-      const cacheKey = `feed_${page}_${limit}`;
+      const cacheKey = `feed_${page}_${limit}_${filter}`;
       if (isRateLimited(cacheKey)) {
         throw new Error('Rate limit exceeded. Please wait before making another request.');
       }
       
-      return await postAPI.getFeed(page, limit);
+      return await postAPI.getFeed(page, limit, filter);
     },
     keepPreviousData: true,
     staleTime: 5 * 60 * 1000, // Increase to 5 minutes
@@ -141,6 +156,15 @@ export const useCreatePost = () => {
       // Invalidate feed to show new post
       queryClient.invalidateQueries({ queryKey: ['feed'] });
     }
+  });
+};
+
+export const useRandomPosts = (limit = 20) => {
+  return useQuery({
+    queryKey: ['random-posts', limit],
+    queryFn: () => postAPI.getRandomPosts(limit),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1
   });
 };
 

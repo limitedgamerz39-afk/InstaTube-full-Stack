@@ -15,6 +15,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Include cookies in requests
+  timeout: 300000, // Increase timeout to 5 minutes for large file uploads
 });
 
 // Store refresh promise to prevent multiple concurrent refresh requests
@@ -73,8 +74,8 @@ api.interceptors.response.use(
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           // Redirect to login page
-          if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
+          if (window.location.pathname !== '/auth') {
+            window.location.href = '/auth';
           }
         } catch (storageError) {
           console.error('Error clearing storage:', storageError);
@@ -91,10 +92,15 @@ api.interceptors.response.use(
 // Function to refresh access token
 const refreshAccessToken = async () => {
   try {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+    
     // Force proxy in development to avoid rate limiting issues
     const isDevelopment = import.meta.env.DEV;
     const baseUrl = isDevelopment ? '/api' : API_BASE_URL;
-    const response = await axios.post(`${baseUrl}/auth/refresh`, {}, {
+    const response = await axios.post(`${baseUrl}/auth/refresh`, { refreshToken }, {
       withCredentials: true, // Include cookies
     });
     
@@ -154,9 +160,15 @@ export const audioCallAPI = {
 
 // User API endpoints
 export const userAPI = {
-  getProfile: (username) => api.get(`/users/${username}`),
+  getProfile: (username) => {
+    // Validate username before making API call
+    if (!username) {
+      return Promise.reject(new Error('Username is required'));
+    }
+    return api.get(`/users/${username}`);
+  },
   updateProfile: (formData) =>
-    api.put('/users/profile', formData, {
+    api.put('/users/Profile', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -167,20 +179,27 @@ export const userAPI = {
   getSuggestions: () => api.get('/users/suggestions'),
   // Add missing user API functions that might be needed
   getUserById: (userId) => api.get(`/users/id/${userId}`),
+  getUserSubscribers: (username) => api.get(`/users/${username}/subscribers`),
+  getUserSubscriptions: (username) => api.get(`/users/${username}/subscriptions`),
+  requestRoleUpgrade: (message) => api.post('/users/role/request', { message }),
 };
 
 // Post API endpoints
 export const postAPI = {
-  createPost: (formData) =>
+  createPost: (formData, onUploadProgress) =>
     api.post('/posts', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      onUploadProgress: onUploadProgress,
+      timeout: 1800000 // Increase timeout to 30 minutes for file uploads
     }),
-  getFeed: (page = 1, limit = 10) => api.get(`/posts/feed?page=${page}&limit=${limit}`),
+  getFeed: (page = 1, limit = 10, filter = 'popular') => api.get(`/posts/feed?page=${page}&limit=${limit}&filter=${filter}`),
+  getRandomPosts: (limit = 20) => api.get(`/posts/random?limit=${limit}`),
   getPost: (postId) => api.get(`/posts/${postId}`),
   deletePost: (postId) => api.delete(`/posts/${postId}`),
   likePost: (postId) => api.post(`/posts/${postId}/like`),
+  unlikePost: (postId) => api.post(`/posts/${postId}/unlike`),
   savePost: (postId) => api.post(`/posts/${postId}/save`),
   archivePost: (postId) => api.post(`/posts/${postId}/archive`),
   getSavedPosts: () => api.get('/posts/saved'),
@@ -197,6 +216,38 @@ export const postAPI = {
   resetVideoEditing: (postId) => api.delete(`/posts/${postId}/video-editing`),
   // Age restrictions and content warnings
   updatePostRestrictions: (postId, restrictionsData) => api.put(`/posts/${postId}/restrictions`, restrictionsData),
+  // Watch later
+  watchLater: (postId) => api.post(`/watchlater/${postId}`),
+  // Report post
+  reportPost: (postId, data) => api.post(`/posts/${postId}/report`, data),
+  // Shorts and Long Videos endpoints
+  getShorts: (page = 1, limit = 10) => api.get(`/posts/videos/short?page=${page}&limit=${limit}`),
+  getLongVideos: (page = 1, limit = 10) => api.get(`/posts/videos/long?page=${page}&limit=${limit}`),
+  // Get posts by user ID
+  getPostsByUserId: (userId, params = {}) => {
+    const { page = 1, limit = 12, category = 'all' } = params;
+    let url = `/posts/user/${userId}?page=${page}&limit=${limit}`;
+    if (category !== 'all') {
+      url += `&category=${category}`;
+    }
+    return api.get(url);
+  },
+};
+
+// Add a helper function to validate file types before upload
+export const validateFileType = (file) => {
+  const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  const allowedVideoTypes = ['video/mp4', 'video/quicktime', 'video/webm', 'video/ogg'];
+  
+  if (file.type.startsWith('image/')) {
+    return allowedImageTypes.includes(file.type);
+  }
+  
+  if (file.type.startsWith('video/')) {
+    return allowedVideoTypes.includes(file.type);
+  }
+  
+  return false;
 };
 
 // Notification API endpoints
@@ -204,6 +255,7 @@ export const notificationAPI = {
   getNotifications: (page = 1) => api.get(`/notifications?page=${page}`),
   markAsRead: (notificationId) => api.put(`/notifications/${notificationId}/read`),
   markAllAsRead: () => api.put('/notifications/read-all'),
+  getUnreadCount: () => api.get('/notifications/unread/count'),
 };
 
 // Message API endpoints
@@ -254,6 +306,8 @@ export const storyAPI = {
   getsubscribedStories: () => api.get('/stories/subscribed'),
   getUserStories: (userId) => api.get(`/stories/user/${userId}`),
   viewStory: (storyId) => api.post(`/stories/${storyId}/view`),
+  replyToStory: (storyId, text) => api.post(`/stories/${storyId}/reply`, { text }),
+  deleteStory: (storyId) => api.delete(`/stories/${storyId}`),
 };
 
 // Reels API endpoints
@@ -263,15 +317,29 @@ export const reelsAPI = {
 
 // Video API endpoints
 export const videoAPI = {
-  getVideos: () => api.get('/posts/videos'),
+  getVideos: () => api.get('/trending/videos'),
   getVideo: (videoId) => api.get(`/posts/${videoId}`),
 };
 
 // Explore API endpoints
 export const exploreAPI = {
-  getExplorePosts: () => api.get('/explore/posts'),
+  getExplorePosts: (params = {}) => {
+    const { page = 1, limit = 20, category = 'all', time = 'today' } = params;
+    let url = `/explore/posts?page=${page}&limit=${limit}`;
+    
+    if (category && category !== 'all') {
+      url += `&category=${category}`;
+    }
+    
+    if (time) {
+      url += `&time=${time}`;
+    }
+    
+    return api.get(url);
+  },
   getTrendingHashtags: () => api.get('/trending/hashtags'),
   getPostsByHashtag: (tag) => api.get(`/explore/tags/${tag}`),
+  getSuggestedCreators: () => api.get('/explore/creators'),
 };
 
 // Community API endpoints
@@ -350,6 +418,26 @@ export const achievementAPI = {
   awardAchievement: (data) => api.post('/achievements/award', data),
   getAllAchievements: (params) => api.get('/achievements/admin/all', { params }),
   revokeAchievement: (id) => api.delete(`/achievements/${id}`),
+};
+
+// Recommendation API endpoints
+export const recommendationAPI = {
+  getPersonalized: (params = {}) => {
+    const { limit = 20 } = params;
+    return api.get(`/recommendations/personalized?limit=${limit}`);
+  },
+  getTrending: (params = {}) => {
+    const { limit = 20 } = params;
+    return api.get(`/recommendations/trending?limit=${limit}`);
+  },
+  getSubscriptions: (params = {}) => {
+    const { limit = 20 } = params;
+    return api.get(`/recommendations/subscriptions?limit=${limit}`);
+  },
+  getUpNext: (postId, params = {}) => {
+    const { limit = 10 } = params;
+    return api.get(`/recommendations/upnext/${postId}?limit=${limit}`);
+  }
 };
 
 

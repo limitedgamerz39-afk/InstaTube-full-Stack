@@ -40,52 +40,36 @@ const ReviewStep = ({ onBack, uploadData, resetUpload }) => {
     try {
       const formData = new FormData();
       
+      // Append metadata FIRST, before files
+      formData.append('title', uploadData.title);
+      formData.append('description', uploadData.description);
+      formData.append('caption', uploadData.caption || uploadData.title);
+      formData.append('tags', uploadData.tags);
+      formData.append('category', uploadData.contentType);
+      formData.append('visibility', uploadData.visibility);
+      
       // Append files
-      uploadData.files.forEach((file) => {
+      uploadData.files.forEach((file, index) => {
         formData.append('media', file);
       });
       
-      // Append metadata
-      formData.append('title', uploadData.title);
-      formData.append('description', uploadData.description);
-      formData.append('tags', uploadData.tags);
-      formData.append('visibility', uploadData.visibility);
-      
-      // Map contentType to category
-      let category = 'image'; // default
-      if (uploadData.contentType === 'reel') {
-        category = 'short';
-      } else if (uploadData.contentType === 'video') {
-        category = 'long';
-      } else {
-        category = 'image';
-      }
-      
-      formData.append('category', category);
-      formData.append('filter', uploadData.selectedFilter || 'normal');
-      formData.append('playbackRate', String(uploadData.playbackRate || 1));
-      formData.append('contentType', uploadData.contentType || 'post');
-      
-      // Append thumbnail if provided
+      // Append thumbnail if exists
       if (uploadData.thumbnailFile) {
         formData.append('thumbnail', uploadData.thumbnailFile);
       }
       
-      // Append selected audio if provided
+      // Append audio if exists
       if (uploadData.selectedAudio) {
         formData.append('audioId', uploadData.selectedAudio._id);
       }
 
-      // Simulate progress for better UX
-      const interval = setInterval(() => {
-        setUploadProgress(prev => Math.min(prev + 10, 90));
-      }, 200);
-
       // Upload the post
-      const response = await postAPI.createPost(formData);
-      
-      clearInterval(interval);
-      setUploadProgress(100);
+      const response = await postAPI.createPost(formData, (progressEvent) => {
+        if (progressEvent.total > 0) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(percentCompleted);
+        }
+      });
       
       toast.success(`${contentTypeLabels[uploadData.contentType] || 'Content'} uploaded successfully!`);
       resetUpload();
@@ -95,8 +79,9 @@ const ReviewStep = ({ onBack, uploadData, resetUpload }) => {
       // More detailed error handling
       let errorMessage = 'Failed to upload content';
       
-      if (error.response) {
-        // Server responded with error status
+      if (error.code === 'ERR_NETWORK') {
+        errorMessage = 'Network error. Check your connection and try again.';
+      } else if (error.response) {
         if (error.response.status === 413) {
           errorMessage = 'File too large. Please reduce file size and try again.';
         } else if (error.response.status === 400) {
@@ -108,9 +93,6 @@ const ReviewStep = ({ onBack, uploadData, resetUpload }) => {
         } else {
           errorMessage = error.response.data?.message || `Upload failed with status ${error.response.status}`;
         }
-      } else if (error.request) {
-        // Network error
-        errorMessage = 'Network error. Please check your connection and try again.';
       }
       
       toast.error(errorMessage);
@@ -141,154 +123,159 @@ const ReviewStep = ({ onBack, uploadData, resetUpload }) => {
 
   const getReviewDescription = () => {
     switch (uploadData.contentType) {
-      case 'reel': return 'Check all details before publishing your Reel';
-      case 'video': return 'Check all details before publishing your video';
-      case 'story': return 'Check all details before publishing your story';
-      case 'post': return 'Check all details before publishing your post';
-      default: return 'Check all details before publishing';
+      case 'reel': return 'Make sure your Reel looks perfect before sharing with your followers.';
+      case 'video': return 'Review your video details and settings before publishing.';
+      case 'story': return 'Check your story before sharing it with your friends.';
+      case 'post': return 'Review your post before sharing with your audience.';
+      default: return 'Review your content before sharing.';
     }
   };
+
+  if (isUploading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-6"></div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Uploading...</h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">{uploadProgress}% complete</p>
+        <div className="w-full max-w-md bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+          <div 
+            className="bg-purple-600 h-2.5 rounded-full transition-all duration-300" 
+            style={{ width: `${uploadProgress}%` }}
+          ></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{getReviewTitle()}</h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          {getReviewDescription()}
-        </p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{getReviewTitle()}</h1>
+        <p className="text-gray-600 dark:text-gray-400">{getReviewDescription()}</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Preview section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column - Preview */}
         <div className="lg:col-span-2">
-          <div className="bg-gray-900 rounded-2xl overflow-hidden aspect-video flex items-center justify-center">
-            {uploadData.previews && uploadData.previews[0] ? (
-              uploadData.previews[0].type.startsWith('video/') ? (
-                <video
-                  src={uploadData.previews[0].url}
-                  className="w-full h-full object-contain"
-                  controls
-                  playsInline
-                />
-              ) : (
-                <img
-                  src={uploadData.previews[0].url}
-                  alt="Preview"
-                  className="w-full h-full object-contain"
-                />
-              )
-            ) : (
-              <div className="text-gray-500">No preview available</div>
-            )}
-          </div>
-
-          {/* Content type indicator */}
-          <div className="mt-4 flex items-center p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
-            <div className="mr-3">
-              {contentTypeIcons[uploadData.contentType]}
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {contentTypeLabels[uploadData.contentType] || 'Content'}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Content type
-              </p>
-            </div>
-          </div>
-
-          {/* File list */}
-          <div className="mt-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Files</h3>
-            <div className="space-y-2">
-              {uploadData.previews.map((preview, index) => (
-                <div key={index} className="flex items-center p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                  <div className="mr-3">
-                    {getFileTypeIcon(preview.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {preview.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {preview.type.startsWith('video/') ? 'Video' : 'Image'}
-                    </p>
-                  </div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+            <div className="p-1 bg-gradient-to-r from-purple-500 to-pink-500">
+              <div className="bg-white dark:bg-gray-800 p-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Preview</h2>
+                
+                {/* Media Preview */}
+                <div className="mb-6">
+                  {uploadData.previews.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {uploadData.previews.slice(0, 4).map((preview, index) => (
+                        <div key={index} className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden relative">
+                          {preview.type.startsWith('video/') ? (
+                            <video 
+                              src={preview.url} 
+                              className="w-full h-full object-cover"
+                              muted
+                              loop
+                            />
+                          ) : (
+                            <img 
+                              src={preview.url} 
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                          {uploadData.previews.length > 4 && index === 3 && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                              <span className="text-white font-bold text-xl">
+                                +{uploadData.previews.length - 4}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="aspect-video bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                      <FaImages className="text-gray-400 text-4xl" />
+                    </div>
+                  )}
                 </div>
-              ))}
+
+                {/* Content Details */}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Title</h3>
+                    <p className="text-gray-700 dark:text-gray-300">{uploadData.title || 'No title'}</p>
+                  </div>
+                  
+                  {uploadData.description && (
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Description</h3>
+                      <p className="text-gray-700 dark:text-gray-300">{uploadData.description}</p>
+                    </div>
+                  )}
+                  
+                  {uploadData.tags && (
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Tags</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {uploadData.tags.split(',').map((tag, index) => (
+                          <span key={index} className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-full text-sm">
+                            #{tag.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Details section */}
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Details</h3>
+        {/* Right Column - Settings */}
+        <div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Settings</h2>
             
             <div className="space-y-4">
               <div>
-                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Title</h4>
-                <p className="text-gray-900 dark:text-white">{uploadData.title || 'No title'}</p>
-              </div>
-              
-              {uploadData.description && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Description</h4>
-                  <p className="text-gray-900 dark:text-white whitespace-pre-wrap">
-                    {uploadData.description}
-                  </p>
+                <h3 className="font-medium text-gray-900 dark:text-white mb-2">Visibility</h3>
+                <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="mr-3">
+                    {visibilityIcons[uploadData.visibility]}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {visibilityLabels[uploadData.visibility]}
+                    </p>
+                  </div>
                 </div>
-              )}
+              </div>
               
               <div>
-                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Visibility</h4>
-                <div className="flex items-center">
-                  <span className="mr-2">
-                    {visibilityIcons[uploadData.visibility]}
-                  </span>
-                  <span className="text-gray-900 dark:text-white">
-                    {visibilityLabels[uploadData.visibility]}
-                  </span>
+                <h3 className="font-medium text-gray-900 dark:text-white mb-2">Content Type</h3>
+                <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="mr-3">
+                    {contentTypeIcons[uploadData.contentType]}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {contentTypeLabels[uploadData.contentType]}
+                    </p>
+                  </div>
                 </div>
               </div>
               
-              {uploadData.category && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Category</h4>
-                  <p className="text-gray-900 dark:text-white">{uploadData.category}</p>
-                </div>
-              )}
-              
-              {uploadData.tags && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Tags</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {uploadData.tags.split(',').map((tag, index) => (
-                      <span 
-                        key={index} 
-                        className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs rounded-full"
-                      >
-                        #{tag.trim()}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Selected Audio */}
               {uploadData.selectedAudio && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Audio Track</h4>
-                  <div className="flex items-center p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                    <div className="mr-3">
-                      <FaMusic className="text-purple-500" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                        {uploadData.selectedAudio.title || 'Untitled Audio'}
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-2">Audio Track</h3>
+                  <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <FaMusic className="text-purple-500 mr-3" />
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {uploadData.selectedAudio.title}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {uploadData.selectedAudio.extractedBy?.username || 'Unknown Artist'}
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {uploadData.selectedAudio.artist}
                       </p>
                     </div>
                   </div>
@@ -297,61 +284,23 @@ const ReviewStep = ({ onBack, uploadData, resetUpload }) => {
             </div>
           </div>
 
-          {uploadData.thumbnailPreview && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Thumbnail</h3>
-              <img 
-                src={uploadData.thumbnailPreview} 
-                alt="Thumbnail" 
-                className="w-full rounded-lg"
-              />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Upload progress */}
-      {isUploading && (
-        <div className="mt-6">
-          <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-            <span>Uploading...</span>
-            <span>{uploadProgress}%</span>
-          </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-            <div 
-              className="bg-primary h-2.5 rounded-full transition-all duration-300 ease-out"
-              style={{ width: `${uploadProgress}%` }}
-            ></div>
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={onBack}
+              className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
+            >
+              Back
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={isUploading}
+              className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors font-medium"
+            >
+              {isUploading ? 'Uploading...' : 'Publish'}
+            </button>
           </div>
         </div>
-      )}
-
-      {/* Navigation buttons */}
-      <div className="flex justify-between mt-8">
-        <button
-          onClick={onBack}
-          disabled={isUploading}
-          className="px-6 py-3 bg-gray-800 text-white font-medium rounded-lg hover:bg-gray-900 disabled:opacity-50 transition-colors"
-        >
-          Back
-        </button>
-        <button
-          onClick={handleSubmit}
-          disabled={isUploading}
-          className="px-6 py-3 bg-gray-800 text-white font-medium rounded-lg hover:bg-gray-900 disabled:opacity-50 transition-colors flex items-center"
-        >
-          {isUploading ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Uploading...
-            </>
-          ) : (
-            `Publish ${contentTypeLabels[uploadData.contentType] || 'Content'}`
-          )}
-        </button>
       </div>
     </div>
   );

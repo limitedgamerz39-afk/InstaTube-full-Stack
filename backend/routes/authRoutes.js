@@ -31,7 +31,7 @@ router.get('/me', protect, (req, res) => {
     }
   });
 });
-router.post('/logout', logout);
+router.post('/logout', protect, logout);
 
 // Login activity routes
 router.get('/login-activities', protect, getUserLoginActivities);

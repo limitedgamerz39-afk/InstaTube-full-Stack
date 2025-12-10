@@ -1,8 +1,5 @@
 import { io } from 'socket.io-client';
 
-// Use the dedicated socket URL from environment variables
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || '/socket.io';
-
 class SocketService {
   constructor() {
     this.socket = null;
@@ -11,10 +8,23 @@ class SocketService {
   connect(token) {
     if (!token) return;
 
-    this.socket = io(SOCKET_URL, {
+    // Use relative path to ensure Socket.IO connects through the proxy
+    // This will use the same host/port as the frontend and proxy to the backend
+    this.socket = io({
       auth: {
         token,
       },
+      // Use relative path for proxy support
+      path: '/socket.io',
+      transports: ['websocket', 'polling'],
+      upgrade: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 20000,
+      // Add additional options to handle connection issues
+      rejectUnauthorized: false,
+      transports: ['polling', 'websocket'], // Try polling first, then websocket
     });
 
     this.socket.on('connect', () => {

@@ -24,18 +24,18 @@ const isMinIOConfigured =
 
 console.log('Is MinIO Configured:', isMinIOConfigured);
 
-let minioClient;
+// Configure MinIO client with larger part size for big files
+const minioClient = new Client({
+  endPoint: process.env.MINIO_ENDPOINT,
+  port: parseInt(process.env.MINIO_PORT),
+  useSSL: process.env.MINIO_USE_SSL === 'true',
+  accessKey: process.env.MINIO_ACCESS_KEY,
+  secretKey: process.env.MINIO_SECRET_KEY,
+  partSize: 100 * 1024 * 1024, // Increase part size to 100MB for better large file handling
+});
 
 if (isMinIOConfigured) {
   try {
-    minioClient = new Client({
-      endPoint: process.env.MINIO_ENDPOINT,
-      port: parseInt(process.env.MINIO_PORT),
-      useSSL: process.env.MINIO_USE_SSL === 'true',
-      accessKey: process.env.MINIO_ACCESS_KEY,
-      secretKey: process.env.MINIO_SECRET_KEY,
-    });
-    
     console.log('✅ MinIO configured successfully!');
     console.log(`📦 Using bucket: ${process.env.MINIO_BUCKET}`);
     
@@ -122,7 +122,7 @@ export const uploadMultiple = multer({
   },
 }).array('media', 10);
 
-export const uploadToStorage = (fileBuffer, folder = 'friendflix', originalName = 'file') => {
+export const uploadToStorage = (fileBuffer, folder = 'd4dhub', originalName = 'file') => {
   if (!isMinIOConfigured) {
     return Promise.reject(new Error('MinIO is not configured. Please set up your credentials.'));
   }
@@ -140,7 +140,15 @@ export const uploadToStorage = (fileBuffer, folder = 'friendflix', originalName 
       fileSize: fileBuffer.length
     });
     
-    minioClient.putObject(bucketName, fileName, stream, fileBuffer.length, (err, etag) => {
+    // Use multipart upload for large files
+    const uploadOptions = {
+      partSize: 100 * 1024 * 1024, // 100MB parts
+      metaData: {
+        'Content-Type': 'application/octet-stream'
+      }
+    };
+    
+    minioClient.putObject(bucketName, fileName, stream, fileBuffer.length, uploadOptions, (err, etag) => {
       if (err) {
         console.error('❌ MinIO upload error:', err);
         return reject(err);

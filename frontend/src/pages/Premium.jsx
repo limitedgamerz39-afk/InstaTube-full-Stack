@@ -12,20 +12,41 @@ const Premium = () => {
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
 
   useEffect(() => {
-    fetchPlans();
+    // Set static plans with Indian Rupee pricing
+    const indianPlans = [
+      {
+        id: 'monthly',
+        name: 'Monthly',
+        price: 99,
+        features: [
+          'Ad-Free Experience',
+          'Background Play',
+          'Offline Downloads',
+          'Premium Badge',
+          'Unlimited Skips',
+          'HD Quality'
+        ]
+      },
+      {
+        id: 'yearly',
+        name: 'Yearly',
+        price: 999,
+        savings: 17, // Calculated: (99*12 - 999) / (99*12) * 100
+        features: [
+          'All Monthly Features',
+          'Priority Support',
+          'Exclusive Content',
+          'Early Access',
+          'Custom Themes',
+          'Family Sharing (up to 5)'
+        ]
+      }
+    ];
+    setPlans(indianPlans);
+    setLoading(false);
+    
     fetchSubscriptionStatus();
   }, []);
-
-  const fetchPlans = async () => {
-    try {
-      const response = await premiumAPI.getPlans();
-      setPlans(response.data.data);
-    } catch (error) {
-      toast.error('Failed to load plans');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchSubscriptionStatus = async () => {
     try {
@@ -79,7 +100,7 @@ const Premium = () => {
             <AiOutlineCrown size={64} className="text-yellow-500" />
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
-            friendflix Premium
+            D4D HUB Premium
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300">
             Unlock the best experience with Premium features
@@ -169,7 +190,7 @@ const Premium = () => {
               <div className="text-center mb-6">
                 <h3 className="text-2xl font-bold dark:text-white mb-2">{plan.name}</h3>
                 <div className="flex items-baseline justify-center">
-                  <span className="text-4xl font-bold dark:text-white">${plan.price}</span>
+                  <span className="text-4xl font-bold dark:text-white">₹{plan.price}</span>
                   <span className="text-gray-500 ml-2">/{plan.id === 'monthly' ? 'month' : 'year'}</span>
                 </div>
                 {plan.savings && (

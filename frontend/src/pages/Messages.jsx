@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { messageAPI } from '../services/api';
 import socketService from '../services/socket';
 import Loader from '../components/Loader';
@@ -18,6 +19,7 @@ import { FiUsers, FiArchive } from 'react-icons/fi';
 
 const Messages = () => {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [filteredConversations, setFilteredConversations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +29,27 @@ const Messages = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [activeFilter, setActiveFilter] = useState('all'); // all, unread, online, starred
   const [showFilters, setShowFilters] = useState(false);
+  
+  const formatLastMessage = (message) => {
+    if (!message) return 'No messages yet.';
+    if (!currentUser) return 'Loading...';
+
+    const prefix = message.sender === currentUser._id ? 'You: ' : '';
+
+    if (message.audio) return `${prefix}Sent a voice message`;
+    if (message.image) return `${prefix}Sent a photo`;
+    if (message.video) return `${prefix}Sent a video`;
+    if (message.fileUrl) return `${prefix}Sent an attachment`;
+    if (message.text) {
+      if (message.text.includes('/reels/')) return `${prefix}Sent a reel`;
+      if (message.text.includes('/watch/')) return `${prefix}Sent a video`;
+      if (message.text.includes('/posts/')) return `${prefix}Sent a post`;
+      return message.text; // No prefix for user's own text message for brevity
+    }
+
+    return 'No messages yet.';
+  };
+
 
   // Filter conversations based on search query and active filter
   useEffect(() => {
@@ -37,7 +60,7 @@ const Messages = () => {
       filtered = filtered.filter(conversation =>
         conversation.user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
         conversation.user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        conversation.lastMessage.text.toLowerCase().includes(searchQuery.toLowerCase())
+        (conversation.lastMessage.text && conversation.lastMessage.text.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
@@ -358,7 +381,7 @@ const Messages = () => {
                       {typingUsers.has(conversation.user._id) ? (
                         <span className="text-primary italic animate-pulse">typing...</span>
                       ) : (
-                        conversation.lastMessage.text
+                        formatLastMessage(conversation.lastMessage)
                       )}
                     </p>
                   </div>

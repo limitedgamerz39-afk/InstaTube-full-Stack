@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import { communityAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { FiHeart, FiMessageCircle, FiMoreVertical, FiImage, FiBarChart } from 'react-icons/fi';
-import Navbar from '../components/Navbar';
 import BottomNav from '../components/BottomNav';
 import Loader from '../components/Loader';
 
@@ -89,7 +88,6 @@ function Community() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navbar />
       
       <div className="max-w-4xl mx-auto px-4 py-6 pb-20">
         <div className="flex justify-between items-center mb-6">

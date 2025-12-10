@@ -169,10 +169,13 @@ export const logout = (req, res) => {
     httpOnly: true,
   });
 
-  logInfo('USER_LOGGED_OUT', {
-    userId: req.user._id,
-    ip: req.ip
-  });
+  // Only log if user is authenticated
+  if (req.user) {
+    logInfo('USER_LOGGED_OUT', {
+      userId: req.user._id,
+      ip: req.ip
+    });
+  }
 
   res.status(200).json({
     success: true,

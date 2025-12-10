@@ -59,12 +59,16 @@ const Saved = () => {
             <div
               key={post._id}
               onClick={() => {
-                if (post.category === 'long') {
-                  navigate(`/watch/${post._id}`);
+                // Navigate based on duration
+                // If duration is less than or equal to 60 seconds, go to reels
+                // Otherwise, go to watch page
+                if (post.durationSec && post.durationSec <= 60) {
+                  navigate(`/reels/${post._id}`);
                 } else if (post.category === 'short') {
+                  // Fallback for short category posts
                   navigate(`/reels/${post._id}`);
                 } else {
-                  navigate(`/post/${post._id}`);
+                  navigate(`/watch/${post._id}`);
                 }
               }}
               className="cursor-pointer hover:opacity-90 transition rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow"

@@ -3,9 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { playlistAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { FiPlus, FiPlay, FiLock, FiGlobe, FiTrash2, FiEdit2 } from 'react-icons/fi';
-import Navbar from '../components/Navbar';
 import BottomNav from '../components/BottomNav';
 import Loader from '../components/Loader';
+import { useAuth } from '../context/AuthContext';
 
 function Playlists() {
   const [playlists, setPlaylists] = useState([]);
@@ -14,7 +14,7 @@ function Playlists() {
   const [newPlaylist, setNewPlaylist] = useState({ title: '', description: '', visibility: 'public' });
   const { userId } = useParams();
   const navigate = useNavigate();
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const { user: currentUser } = useAuth();
 
   useEffect(() => {
     fetchPlaylists();
@@ -23,7 +23,16 @@ function Playlists() {
   const fetchPlaylists = async () => {
     try {
       setLoading(true);
-      const targetUserId = userId || currentUser._id;
+      
+      // Validate that we have a valid user ID
+      const targetUserId = userId || (currentUser && currentUser._id);
+      
+      if (!targetUserId) {
+        toast.error('Unable to load playlists: User not found');
+        setLoading(false);
+        return;
+      }
+      
       const response = await playlistAPI.getUserPlaylists(targetUserId);
       setPlaylists(response.data.playlists || []);
     } catch (error) {
@@ -70,14 +79,14 @@ function Playlists() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navbar />
+      {/* Removed duplicate Navbar since it's already included in AppLayout */}
       
       <div className="max-w-7xl mx-auto px-4 py-6 pb-20">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            {!userId || userId === currentUser._id ? 'My Playlists' : `${userId}'s Playlists`}
+            {!userId || (currentUser && userId === currentUser._id) ? 'My Playlists' : `${userId}'s Playlists`}
           </h1>
-          {(!userId || userId === currentUser._id) && (
+          {(!userId || (currentUser && userId === currentUser._id)) && (
             <button
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg hover:opacity-90"
@@ -122,7 +131,7 @@ function Playlists() {
                     <span className="text-xs sm:text-sm text-gray-500">
                       {playlist.videoCount} videos
                     </span>
-                    {playlist.creator._id === currentUser._id && (
+                    {currentUser && playlist.creator && playlist.creator._id === currentUser._id && (
                       <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                         <button
                           className="text-blue-500 hover:text-blue-600"

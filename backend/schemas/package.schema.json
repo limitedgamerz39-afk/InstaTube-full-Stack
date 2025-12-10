@@ -1,7 +1,7 @@
 {
-  "$id": "https://friendflix.local/schemas/package.schema.json",
+  "$id": "https://d4dhub.local/schemas/package.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Local Package.json Schema (friendflix)",
+  "title": "Local Package.json Schema (D4D HUB)",
   "type": "object",
   "additionalProperties": true,
   "properties": {

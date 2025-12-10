@@ -67,12 +67,12 @@ export const sendVerificationEmail = async (email, verificationToken) => {
     const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/verify-email?token=${verificationToken}`;
     
     const mailOptions = {
-      from: `"friendflix" <${process.env.EMAIL_USER}>`,
+      from: `"D4D HUB" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: 'Verify your friendflix account',
+      subject: 'Verify your D4D HUB account',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #4361ee;">Welcome to friendflix!</h2>
+          <h2 style="color: #4361ee;">Welcome to D4D HUB!</h2>
           <p>Thank you for registering. Please verify your email address by clicking the button below:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${verificationUrl}" 
@@ -86,7 +86,7 @@ export const sendVerificationEmail = async (email, verificationToken) => {
           <p>This link will expire in 24 hours.</p>
           <hr style="margin: 30px 0;">
           <p style="color: #999; font-size: 12px;">
-            If you didn't create an account with friendflix, please ignore this email.
+            If you didn't create an account with D4D HUB, please ignore this email.
           </p>
         </div>
       `
@@ -113,9 +113,9 @@ export const sendPasswordResetEmail = async (email, resetToken) => {
     const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
     
     const mailOptions = {
-      from: `"friendflix" <${process.env.EMAIL_USER}>`,
+      from: `"D4D HUB" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: 'Reset your friendflix password',
+      subject: 'Reset your D4D HUB password',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #4361ee;">Password Reset Request</h2>
@@ -157,16 +157,16 @@ export const sendNotificationEmail = async (email, subject, message) => {
   
   try {
     const mailOptions = {
-      from: `"friendflix" <${process.env.EMAIL_USER}>`,
+      from: `"D4D HUB" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: subject,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #4361ee;">friendflix Notification</h2>
+          <h2 style="color: #4361ee;">D4D HUB Notification</h2>
           <p>${message}</p>
           <hr style="margin: 30px 0;">
           <p style="color: #999; font-size: 12px;">
-            You received this email because you're subscribed to friendflix notifications.
+            You received this email because you're subscribed to D4D HUB notifications.
             <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/settings/notifications">Manage notifications</a>
           </p>
         </div>

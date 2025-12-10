@@ -5,7 +5,10 @@ import AudioLibrary from './AudioLibrary';
 import { requestCameraAndMicrophonePermissions } from '../utils/permissions';
 import toast from 'react-hot-toast';
 
-const friendflixStyleUpload = ({ onCapture, onClose, captureType, uploadData, setUploadData }) => {
+// Simple mobile detection
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+const d4dHubStyleUpload = ({ onCapture, onClose, captureType, uploadData, setUploadData }) => {
   const videoRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const [error, setError] = useState(null);
@@ -331,6 +334,19 @@ const friendflixStyleUpload = ({ onCapture, onClose, captureType, uploadData, se
                     ? 'Tap to stop recording' 
                     : 'Tap to start recording'}
               </p>
+              
+              {/* Add a link to mobile shorts recorder for mobile users */}
+              {isMobile && (
+                <p className="text-gray-400 mt-4 text-center text-sm">
+                  For a better mobile experience, try our <button 
+                    onClick={() => {
+                      onClose();
+                      window.location.href = '/#/shorts/mobile';
+                    }}
+                    className="text-blue-400 underline"
+                  >dedicated mobile recorder</button>
+                </p>
+              )}
               
               {!devicesAvailable.camera && (
                 <p className="text-yellow-300 text-sm mt-2 text-center">
@@ -748,4 +764,4 @@ const friendflixStyleUpload = ({ onCapture, onClose, captureType, uploadData, se
   );
 };
 
-export default friendflixStyleUpload;
+export default d4dHubStyleUpload;

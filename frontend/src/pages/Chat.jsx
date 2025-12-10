@@ -15,7 +15,7 @@ import {
   AiOutlineFile,
   AiOutlineSmile
 } from 'react-icons/ai';
-import { BsThreeDotsVertical, BsMicFill, BsStopFill } from 'react-icons/bs';
+import { BsThreeDotsVertical, BsMicFill, BsStopFill, BsPlayFill } from 'react-icons/bs';
 import { IoSend } from 'react-icons/io5';
 import VoiceRecorder from '../components/VoiceRecorder';
 
@@ -55,6 +55,29 @@ const Chat = () => {
   
   const reactions = ['👍', '❤️', '🔥', '😂', '😢', '😡'];
   const emojis = ['😀', '😂', '😍', '🥰', '😎', '🤔', '😢', '😭', '😡', '🤯', '🥳', '😇', '🤗', '🙏', '👍', '👎', '👏', '🙌', '💪', '❤️', '💔', '🔥', '✨', '💯', '🎉', '🎊', '🎈', '🎁', '🏆', '⭐', '💫', '✅'];
+
+  // Helper for message bubble styling
+  const getMessageBubbleStyles = (isOwn, isFirst, isLast) => {
+    const baseClasses = 'px-4 py-3 max-w-full';
+    let dynamicClasses = '';
+
+    if (isOwn) {
+      // Use gradient for user's own messages (saffron to green)
+      dynamicClasses = 'bg-gradient-to-r from-primary-500 to-secondary-600 text-white shadow-card hover:shadow-card-hover transition-shadow ';
+      if (isFirst && isLast) dynamicClasses += 'rounded-2xl rounded-tr-none';
+      else if (isFirst) dynamicClasses += 'rounded-t-2xl rounded-bl-2xl';
+      else if (isLast) dynamicClasses += 'rounded-b-2xl rounded-l-2xl';
+      else dynamicClasses += 'rounded-l-2xl';
+    } else {
+      // Use theme-appropriate colors for other user's messages (light gradient)
+      dynamicClasses = 'bg-gradient-to-r from-primary-100 to-secondary-100 text-gray-900 dark:text-white shadow-card ';
+      if (isFirst && isLast) dynamicClasses += 'rounded-2xl rounded-tl-none';
+      else if (isFirst) dynamicClasses += 'rounded-t-2xl rounded-br-2xl';
+      else if (isLast) dynamicClasses += 'rounded-b-2xl rounded-r-2xl';
+      else dynamicClasses += 'rounded-r-2xl';
+    }
+    return `${baseClasses} ${dynamicClasses}`;
+  };
 
   useEffect(() => {
     setMessages([]);
@@ -158,16 +181,24 @@ const Chat = () => {
   }, [showMenu, showMediaOptions]);
 
   const fetchUserAndMessages = async () => {
+    // Redirect if username is undefined
+    if (!username) {
+      navigate('/messages');
+      return;
+    }
+    
     try {
       let userResponse;
-      try {
+      
+      // Check if username is actually a user ID (MongoDB ObjectId format)
+      const isUserId = /^[0-9a-fA-F]{24}$/.test(username);
+      
+      if (isUserId) {
+        // If it's a user ID, fetch user by ID
+        userResponse = await userAPI.getUserById(username);
+      } else {
+        // Otherwise, fetch user by username
         userResponse = await userAPI.getProfile(username);
-      } catch (profileError) {
-        // If getting by username fails, try getting by ID
-        console.log('Username lookup failed, trying ID lookup...');
-        // This would require the user ID to be passed as a parameter or obtained another way
-        // For now, we'll re-throw the error
-        throw profileError;
       }
       
       setOtherUser(userResponse.data.data);
@@ -366,17 +397,17 @@ const Chat = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-white dark:bg-gray-900 safe-area">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-dark-bg dark:to-dark-bg-secondary safe-area">
       {/* Enhanced Chat Header */}
-      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-20 shadow-sm safe-top">
+      <div className="bg-gradient-to-r from-primary-500 to-secondary-600 text-white border-b border-white/20 sticky top-0 z-20 shadow-lg safe-top">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-3 flex-1 min-w-0">
             <button
               onClick={() => navigate('/messages')}
-              className="flex-shrink-0 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition touch-target"
+              className="flex-shrink-0 hover:bg-black/20 p-2 rounded-full transition touch-target"
               aria-label="Back to messages"
             >
-              <AiOutlineArrowLeft size={20} className="dark:text-white" />
+              <AiOutlineArrowLeft size={20} className="text-white" />
             </button>
 
             {/* Enhanced User Info */}
@@ -388,22 +419,22 @@ const Chat = () => {
                 <img
                   src={otherUser.avatar}
                   alt={otherUser.username}
-                  className="h-10 w-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600 hover:opacity-80 transition"
+                  className="h-10 w-10 rounded-full object-cover border-2 border-white/30 hover:opacity-80 transition"
                 />
                 {isOnline && (
-                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></span>
+                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
                 )}
               </div>
 
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 dark:text-white truncate text-base">
+                <p className="font-semibold text-white truncate text-base">
                   {otherUser.username}
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                <p className="text-sm text-white/80 truncate">
                   {isTyping ? (
-                    <span className="text-blue-500 font-medium animate-pulse">typing...</span>
+                    <span className="text-white font-medium animate-pulse">typing...</span>
                   ) : isOnline ? (
-                    <span className="text-green-500 font-medium">Online</span>
+                    <span className="text-white/90 font-medium">Online</span>
                   ) : (
                     "Offline"
                   )}
@@ -416,59 +447,30 @@ const Chat = () => {
           <div className="flex items-center space-x-1 flex-shrink-0">
             <button
               onClick={() => navigate(`/video-call/${otherUser._id}`)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition touch-target"
+              className="p-2 hover:bg-black/20 rounded-full transition touch-target"
               title="Video Call"
               aria-label="Video call"
             >
-              <AiOutlineVideoCamera size={22} className="text-gray-600 dark:text-gray-300" />
+              <AiOutlineVideoCamera size={20} className="text-white" />
             </button>
+            
             <button
-              onClick={() => { 
-                socketService.emit('call:invite', { to: otherUser._id, roomId: otherUser._id, type: 'audio', from: currentUser._id }); 
-                navigate(`/audio-call/${otherUser._id}?initiator=1`); 
-              }}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition touch-target"
+              onClick={() => navigate(`/audio-call/${otherUser._id}`)}
+              className="p-2 hover:bg-black/20 rounded-full transition touch-target"
               title="Audio Call"
               aria-label="Audio call"
             >
-              <AiOutlinePhone size={22} className="text-gray-600 dark:text-gray-300" />
+              <AiOutlinePhone size={20} className="text-white" />
             </button>
             
-            {/* Enhanced Menu */}
-            <div className="relative menu-container">
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition touch-target"
-                title="More Options"
-                aria-label="More options"
-              >
-                <BsThreeDotsVertical size={20} className="text-gray-600 dark:text-gray-300" />
-              </button>
-
-              {showMenu && (
-                <div className="absolute right-0 top-12 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 animate-fadeIn max-h-[80vh] overflow-y-auto">
-                  {/* Menu items remain the same as original */}
-                  <button
-                    onClick={() => {
-                      navigate(`/profile/${otherUser.username}`);
-                      setShowMenu(false);
-                    }}
-                    className="w-full flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition"
-                  >
-                    <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    <div>
-                      <p className="font-medium dark:text-white">View Profile</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">See user profile</p>
-                    </div>
-                  </button>
-
-                  {/* Other menu items... */}
-                  
-                </div>
-              )}
-            </div>
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-2 hover:bg-black/20 rounded-full transition touch-target"
+              title="More options"
+              aria-label="More options"
+            >
+              <BsThreeDotsVertical size={20} className="text-white" />
+            </button>
           </div>
         </div>
       </div>
@@ -477,16 +479,16 @@ const Chat = () => {
       <div className="flex-1 overflow-y-auto p-4 space-y-2 pb-24 md:pb-20">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-4">
-            <div className="bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full p-6 mb-4">
-              <svg className="w-16 h-16 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            <div className="bg-gradient-to-br from-primary-100 to-secondary-100 dark:from-primary-900/30 dark:to-secondary-900/30 rounded-full p-6 mb-4">
+              <svg className="w-16 h-16 text-primary-500 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9 8s9 3.582 9 8z" />
               </svg>
             </div>
             <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">No messages yet</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm">Start a conversation with {otherUser.username}</p>
             <button 
               onClick={() => setNewMessage('Hi there! 👋')}
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full font-medium hover:shadow-lg transition-shadow duration-200"
+              className="px-6 py-3 bg-gradient-primary text-white rounded-full font-medium hover:shadow-lg transition-shadow duration-200"
             >
               Say Hello
             </button>
@@ -495,143 +497,137 @@ const Chat = () => {
           <>
             {messages.map((message, index) => {
               const isOwnMessage = message.sender._id === currentUser._id;
-              const nextMessage = messages[index + 1];
-              const showAvatar = !nextMessage || nextMessage.sender._id !== message.sender._id;
-              
               const prevMessage = messages[index - 1];
-              const showTimestamp = !prevMessage || 
-                new Date(message.createdAt) - new Date(prevMessage.createdAt) > 5 * 60 * 1000 ||
-                prevMessage.sender._id !== message.sender._id;
+              const nextMessage = messages[index + 1];
+
+              const isFirstInSequence = !prevMessage || prevMessage.sender._id !== message.sender._id;
+              const isLastInSequence = !nextMessage || nextMessage.sender._id !== message.sender._id;
               
+              const showAvatar = !isOwnMessage && isLastInSequence;
+              const showTimestamp = isFirstInSequence;
+
               return (
                 <div
                   key={message._id}
-                  className={`flex items-end mb-2 ${
+                  className={`flex items-end ${isLastInSequence ? 'mb-2' : 'mb-0.5'} ${
                     isOwnMessage ? 'justify-end' : 'justify-start'
                   }`}
                 >
-                  {/* Received Messages */}
-                  {!isOwnMessage && (
-                    <div className="flex items-end space-x-2 max-w-[85%]">
-                      {showAvatar ? (
-                        <img
-                          src={otherUser.avatar}
-                          alt={otherUser.username}
-                          className="h-8 w-8 rounded-full object-cover flex-shrink-0 cursor-pointer hover:opacity-80 transition"
-                          onClick={() => navigate(`/profile/${otherUser.username}`)}
-                        />
-                      ) : (
-                        <div className="w-8 flex-shrink-0"></div>
+                  <div className={`flex items-end space-x-2 max-w-[85%]`}>
+                    {showAvatar ? (
+                      <img
+                        src={otherUser.avatar}
+                        alt={otherUser.username}
+                        className="h-8 w-8 rounded-full object-cover flex-shrink-0 cursor-pointer hover:opacity-80 transition"
+                        onClick={() => navigate(`/profile/${otherUser.username}`)}
+                      />
+                    ) : (
+                      !isOwnMessage && <div className="w-8 flex-shrink-0"></div>
+                    )}
+                    
+                    <div className="relative group flex-1 min-w-0">
+                      {showTimestamp && (
+                        <div className={`text-xs text-gray-500 dark:text-gray-400 mb-1 ${isOwnMessage ? 'mr-2 text-right' : 'ml-2'}`}>
+                          {!isOwnMessage && `${otherUser.username} • `}
+                          {timeAgo(message.createdAt)}
+                        </div>
                       )}
-                      
-                      <div className="relative group flex-1 min-w-0">
-                        {showTimestamp && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 ml-2">
-                            {timeAgo(message.createdAt)}
+                      <div 
+                        className={getMessageBubbleStyles(isOwnMessage, isFirstInSequence, isLastInSequence)}
+                        onDoubleClick={() => setShowReactions(message._id)}
+                      >
+                        {message.image ? (
+                          <div className="relative">
+                            <img src={message.image} alt="Shared image" className="max-w-full rounded-lg" loading="lazy" />
                           </div>
-                        )}
-                        <div 
-                          className="px-4 py-3 rounded-2xl bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-tl-none hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer"
-                          onDoubleClick={() => setShowReactions(message._id)}
-                        >
-                          {/* Message content rendering remains the same */}
-                          {message.image ? (
-                            <div className="relative">
-                              <img src={message.image} alt="Shared image" className="max-w-full rounded-lg" loading="lazy" />
-                              <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
-                                {timeAgo(message.createdAt)}
+                        ) : message.text ? (
+                          <div>
+                            {message.text.includes('/reels/') ? (
+                              // Handle reel links
+                              <div className="space-y-2">
+                                <div className="break-words leading-relaxed">
+                                  {message.text.split('\n').map((line, idx) => {
+                                    // Check if this line contains a reel URL
+                                    const reelMatch = line.match(/(?:https?:\/\/[^\/]+)?\/reels\/([a-zA-Z0-9]+)/);
+                                    const reelId = reelMatch ? reelMatch[1] : null;
+                                    
+                                    if (reelId) {
+                                      // If the line is just the reel URL or the formatted message, show the reel card
+                                      const isSimpleUrl = line.trim() === `${window.location.origin}/reels/${reelId}`;
+                                      const isFormattedMessage = line.trim() === `Check out this reel: ${window.location.origin}/reels/${reelId}`;
+                                      
+                                      if (isSimpleUrl || isFormattedMessage) {
+                                        return (
+                                          <div 
+                                            key={idx}
+                                            className="mt-2 p-3 bg-gradient-to-r from-primary-100 to-secondary-100 dark:from-primary-900/30 dark:to-secondary-900/30 rounded-lg cursor-pointer hover:from-primary-200 hover:to-secondary-200 dark:hover:from-primary-800/30 dark:hover:to-secondary-800/30 transition-colors"
+                                            onClick={() => navigate(`/reels/${reelId}`)}
+                                          >
+                                            <div className="flex items-center">
+                                              <BsPlayFill className="text-red-500 mr-2" />
+                                              <span className="font-medium text-sm">Reel</span>
+                                            </div>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 block">
+                                              Tap to view this reel
+                                            </span>
+                                          </div>
+                                        );
+                                      }
+                                      
+                                      // For other cases, show the text with embedded reel link
+                                      return (
+                                        <div key={idx} className="inline-block">
+                                          {line.replace(/Check out this reel:.*$|https?:\/\/[^\/]+\/reels\/[a-zA-Z0-9]+/g, '').trim() && (
+                                            <span>{line.replace(/Check out this reel:.*$|https?:\/\/[^\/]+\/reels\/[a-zA-Z0-9]+/g, '').trim()} </span>
+                                          )}
+                                          <div 
+                                            className="mt-2 p-3 bg-gradient-to-r from-primary-100 to-secondary-100 dark:from-primary-900/30 dark:to-secondary-900/30 rounded-lg cursor-pointer hover:from-primary-200 hover:to-secondary-200 dark:hover:from-primary-800/30 dark:hover:to-secondary-800/30 transition-colors inline-block"
+                                            onClick={() => navigate(`/reels/${reelId}`)}
+                                          >
+                                            <div className="flex items-center">
+                                              <BsPlayFill className="text-red-500 mr-2" />
+                                              <span className="font-medium text-sm">Reel</span>
+                                            </div>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                              Tap to view this reel
+                                            </p>
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+                                    return line ? <span key={idx}>{line}<br /></span> : <br key={idx} />;
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          ) : message.text ? (
-                            <p className="break-words leading-relaxed">{message.text}</p>
-                          ) : null}
-                        </div>
-
-                        {/* Enhanced Reactions */}
-                        <button
-                          onClick={() => setShowReactions(showReactions === message._id ? null : message._id)}
-                          className="absolute -bottom-2 -right-2 hidden group-hover:flex items-center justify-center w-6 h-6 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-600"
-                        >
-                          <AiOutlineSmile size={12} className="text-gray-600 dark:text-gray-400" />
-                        </button>
-                        
-                        {showReactions === message._id && (
-                          <div className="absolute -bottom-12 left-0 bg-white dark:bg-gray-800 rounded-full shadow-xl px-3 py-2 flex space-x-2 z-50 animate-fadeIn border border-gray-200 dark:border-gray-600">
-                            {reactions.map((emoji, idx) => (
-                              <button
-                                key={idx}
-                                onClick={() => handleAddReaction(message._id, emoji)}
-                                className="text-xl hover:scale-125 transition-transform duration-150"
-                              >
-                                {emoji}
-                              </button>
-                            ))}
+                            ) : (
+                              <p className="break-words leading-relaxed">{message.text}</p>
+                            )}
                           </div>
-                        )}
+                        ) : null}
                       </div>
-                    </div>
-                  )}
 
-                  {/* Sent Messages */}
-                  {isOwnMessage && (
-                    <div className="flex items-end space-x-2 max-w-[85%]">
-                      <div className="relative group flex-1 min-w-0">
-                        {showTimestamp && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 mr-2 text-right">
-                            {timeAgo(message.createdAt)}
-                          </div>
-                        )}
-                        <div 
-                          className="px-4 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-tr-none hover:from-blue-600 hover:to-purple-600 transition-all cursor-pointer shadow-sm"
-                          onDoubleClick={() => setShowReactions(message._id)}
-                        >
-                          {message.image ? (
-                            <div className="relative">
-                              <img src={message.image} alt="Shared image" className="max-w-full rounded-lg" loading="lazy" />
-                              <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
-                                {timeAgo(message.createdAt)}
-                              </div>
-                            </div>
-                          ) : message.text ? (
-                            <p className="break-words leading-relaxed">{message.text}</p>
-                          ) : null}
-                        </div>
-
-                        {/* Enhanced Reactions for sent messages */}
-                        <button
-                          onClick={() => setShowReactions(showReactions === message._id ? null : message._id)}
-                          className="absolute -bottom-2 -left-2 hidden group-hover:flex items-center justify-center w-6 h-6 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-600"
-                        >
-                          <AiOutlineSmile size={12} className="text-gray-600 dark:text-gray-400" />
-                        </button>
-                        
-                        {showReactions === message._id && (
-                          <div className="absolute -bottom-12 right-0 bg-white dark:bg-gray-800 rounded-full shadow-xl px-3 py-2 flex space-x-2 z-50 animate-fadeIn border border-gray-200 dark:border-gray-600">
-                            {reactions.map((emoji, idx) => (
-                              <button
-                                key={idx}
-                                onClick={() => handleAddReaction(message._id, emoji)}
-                                className="text-xl hover:scale-125 transition-transform duration-150"
-                              >
-                                {emoji}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      <button
+                        onClick={() => setShowReactions(showReactions === message._id ? null : message._id)}
+                        className={`absolute -bottom-2 ${isOwnMessage ? '-left-2' : '-right-2'} hidden group-hover:flex items-center justify-center w-6 h-6 bg-gradient-to-r from-primary-500 to-secondary-600 rounded-full shadow-lg hover:from-primary-600 hover:to-secondary-700 transition-colors border border-white/30`}
+                      >
+                        <AiOutlineSmile size={12} className="text-white" />
+                      </button>
                       
-                      {showAvatar ? (
-                        <img
-                          src={currentUser.avatar}
-                          alt={currentUser.username}
-                          className="h-8 w-8 rounded-full object-cover flex-shrink-0 cursor-pointer hover:opacity-80 transition"
-                          onClick={() => navigate(`/profile/${currentUser.username}`)}
-                        />
-                      ) : (
-                        <div className="w-8 flex-shrink-0"></div>
+                      {showReactions === message._id && (
+                        <div className={`absolute -bottom-12 ${isOwnMessage ? 'right-0' : 'left-0'} bg-gradient-to-r from-primary-700 to-secondary-800 rounded-full shadow-xl px-3 py-2 flex space-x-2 z-50 animate-fadeIn border border-white/20`}>
+                          {reactions.map((emoji, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => handleAddReaction(message._id, emoji)}
+                              className="text-xl hover:scale-125 transition-transform duration-150"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })}
@@ -641,15 +637,15 @@ const Chat = () => {
       </div>
 
       {/* Enhanced Message Input */}
-      <div className="bg-white dark:bg-gray-800 border-t dark:border-gray-700 fixed bottom-0 left-0 right-0 z-30 safe-bottom">
+      <div className="bg-gradient-to-r from-primary-700 to-secondary-800 text-white border-t border-white/10 fixed bottom-0 left-0 right-0 z-30 safe-bottom">
         {/* Enhanced Emoji Picker */}
         {showEmojiPicker && (
-          <div className="p-4 border-b dark:border-gray-700 bg-white dark:bg-gray-800">
+          <div className="p-4 border-b border-white/10 bg-gradient-to-r from-primary-700 to-secondary-800">
             <div className="flex justify-between items-center mb-3">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Emojis</span>
+              <span className="text-sm font-medium text-white">Emojis</span>
               <button
                 onClick={() => setShowEmojiPicker(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="text-white/70 hover:text-white"
               >
                 ✕
               </button>
@@ -660,7 +656,7 @@ const Chat = () => {
                   key={idx}
                   type="button"
                   onClick={() => addEmoji(emoji)}
-                  className="text-xl hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded transition-colors duration-150 touch-target"
+                  className="text-xl hover:bg-black/20 p-2 rounded transition-colors duration-150 touch-target"
                 >
                   {emoji}
                 </button>
@@ -671,12 +667,12 @@ const Chat = () => {
         
         {/* Enhanced Media Options */}
         {showMediaOptions && (
-          <div className="p-4 border-b dark:border-gray-700 bg-white dark:bg-gray-800 media-menu-container">
+          <div className="p-4 border-b border-white/10 bg-gradient-to-r from-primary-700 to-secondary-800 media-menu-container">
             <div className="flex justify-between items-center mb-3">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Send Media</span>
+              <span className="text-sm font-medium text-white">Send Media</span>
               <button
                 onClick={() => setShowMediaOptions(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="text-white/70 hover:text-white"
               >
                 ✕
               </button>
@@ -684,32 +680,32 @@ const Chat = () => {
             <div className="grid grid-cols-4 gap-4 max-w-md mx-auto">
               <button
                 onClick={() => imageInputRef.current?.click()}
-                className="flex flex-col items-center space-y-2 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="flex flex-col items-center space-y-2 p-3 hover:bg-black/20 rounded-lg transition-colors"
               >
-                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                  <AiOutlinePicture size={24} className="text-blue-500" />
+                <div className="w-12 h-12 bg-gradient-to-r from-primary-500 to-secondary-600 rounded-full flex items-center justify-center">
+                  <AiOutlinePicture size={24} className="text-white" />
                 </div>
-                <span className="text-xs text-gray-600 dark:text-gray-400">Photo</span>
+                <span className="text-xs text-white/80">Photo</span>
               </button>
               
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex flex-col items-center space-y-2 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="flex flex-col items-center space-y-2 p-3 hover:bg-black/20 rounded-lg transition-colors"
               >
-                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                  <AiOutlineFile size={24} className="text-green-500" />
+                <div className="w-12 h-12 bg-gradient-to-r from-primary-500 to-secondary-600 rounded-full flex items-center justify-center">
+                  <AiOutlineFile size={24} className="text-white" />
                 </div>
-                <span className="text-xs text-gray-600 dark:text-gray-400">File</span>
+                <span className="text-xs text-white/80">File</span>
               </button>
               
               <button
                 onClick={startRecording}
-                className="flex flex-col items-center space-y-2 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="flex flex-col items-center space-y-2 p-3 hover:bg-black/20 rounded-lg transition-colors"
               >
-                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                  <BsMicFill size={20} className="text-red-500" />
+                <div className="w-12 h-12 bg-gradient-to-r from-primary-500 to-secondary-600 rounded-full flex items-center justify-center">
+                  <BsMicFill size={20} className="text-white" />
                 </div>
-                <span className="text-xs text-gray-600 dark:text-gray-400">Voice</span>
+                <span className="text-xs text-white/80">Voice</span>
               </button>
             </div>
           </div>
@@ -721,7 +717,7 @@ const Chat = () => {
           <button
             type="button"
             onClick={() => setShowMediaOptions(!showMediaOptions)}
-            className="flex-shrink-0 p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors touch-target"
+            className="flex-shrink-0 p-2 text-white/80 hover:text-white transition-colors touch-target"
             title="Attach media"
             aria-label="Attach media"
           >
@@ -730,68 +726,57 @@ const Chat = () => {
             </svg>
           </button>
 
-          {/* Hidden file inputs */}
-          <input
-            ref={imageInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleImageUpload}
-          />
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="*"
-            className="hidden"
-            onChange={(e) => handleFileUpload(e.target.files[0])}
-          />
-
-          {/* Message Input */}
+          {/* Text Input */}
           <div className="flex-1 relative">
             <input
               ref={inputRef}
               type="text"
-              placeholder="Message..."
               value={newMessage}
               onChange={(e) => {
                 setNewMessage(e.target.value);
                 handleTyping();
               }}
-              onKeyPress={(e) => {
+              placeholder="Type a message..."
+              className="w-full bg-black/20 backdrop-blur-sm border border-white/20 rounded-full py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
+              disabled={sending}
+              onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   handleSend(e);
                 }
               }}
-              className="w-full py-3 px-4 text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
+
+          {/* Send Button */}
+          <button
+            type="submit"
+            disabled={!newMessage.trim() || sending}
+            className={`flex-shrink-0 p-3 rounded-full transition-all duration-200 ${
+              newMessage.trim() && !sending
+                ? 'bg-gradient-to-r from-primary-500 to-secondary-600 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
+                : 'bg-black/20 text-white/40 cursor-not-allowed'
+            }`}
+            title="Send message"
+            aria-label="Send message"
+          >
+            {sending ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : (
+              <IoSend size={20} />
+            )}
+          </button>
 
           {/* Emoji Button */}
           <button
             type="button"
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="flex-shrink-0 p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors touch-target"
+            className="flex-shrink-0 p-3 text-white/80 hover:text-white transition-colors touch-target"
             title="Add emoji"
             aria-label="Add emoji"
           >
-            <AiOutlineSmile size={24} />
+            <AiOutlineSmile size={20} />
           </button>
-
-          {/* Send/Voice Record Button */}
-          {newMessage.trim() ? (
-            <button
-              type="submit"
-              disabled={sending}
-              className="flex-shrink-0 p-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-sm touch-target disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="Send message"
-            >
-              <IoSend size={18} />
-            </button>
-          ) : (
-            <VoiceRecorder onSend={handleVoiceMessageSend} />
-          )}
-
         </form>
       </div>
     </div>
